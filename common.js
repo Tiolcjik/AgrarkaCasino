@@ -2008,6 +2008,7 @@ function offerDoubleOrNothing(amount) {
       // overlay without re-parsing huge number as new "max" incorrectly via 2x text
       showWinOverlay('🔥 DOUBLE!', '+' + fmtMoney(amount));
       moneyRain(50);
+      try { playPizdatyJingle(5000); } catch(_) {}
       try { SFX.bigWin(); } catch(_) {}
     } else {
       window.__skipLossRecord = true;
@@ -2218,17 +2219,20 @@ function playUkraineAnthemSnippet() {
     // не тягти весь трек — зупинити через ~25с
     setTimeout(() => {
       try { if (_anthemAudio) { _anthemAudio.pause(); _anthemAudio.currentTime = 0; } } catch(e) {}
-    }, 25000);
+    }, 10000);
   } catch (e) {
     console.warn('anthem play fail', e);
   }
 }
 
-/** «Я пиздатый» — Lil Morty на джекпотах */
+/** «Я пиздатый» — Lil Morty (ms = длительность, по умолчанию 10с) */
 let _pizdatyAudio = null;
-function playPizdatyJingle() {
+let _pizdatyStopTimer = null;
+function playPizdatyJingle(ms) {
   if (!soundOn) return;
+  const dur = typeof ms === 'number' ? ms : 10000;
   try {
+    if (_pizdatyStopTimer) clearTimeout(_pizdatyStopTimer);
     if (_pizdatyAudio) {
       try { _pizdatyAudio.pause(); } catch(e) {}
     }
@@ -2237,11 +2241,10 @@ function playPizdatyJingle() {
     _pizdatyAudio.currentTime = 0;
     const p = _pizdatyAudio.play();
     if (p && p.catch) p.catch(() => {});
-    // куплет ~25с, потім стоп
-    setTimeout(() => {
+    _pizdatyStopTimer = setTimeout(() => {
       try { if (_pizdatyAudio) { _pizdatyAudio.pause(); _pizdatyAudio.currentTime = 0; } } catch(e) {}
-    }, 28000);
-    setTimeout(() => { try { SFX.bigWin(); } catch(e) {} }, 400);
+    }, dur);
+    if (dur >= 8000) setTimeout(() => { try { SFX.bigWin(); } catch(e) {} }, 400);
   } catch (e) {
     console.warn('pizdaty play fail', e);
   }
@@ -2534,21 +2537,30 @@ function renderVipBoard() {
 }
 
 /* ---------- Big loss reaction ---------- */
-let _lossStreak = 0;
+/* Надписи при проигрыше: 1 раз на 4–10 проигрышей (не каждый раз) */
+let _lossCount = 0;
+let _lossNextAt = 4 + Math.floor(Math.random() * 7); // 4..10
 function reactBigLoss(amount) {
   const abs = Math.abs(amount);
-  if (abs < 80) { _lossStreak = 0; return; }
-  _lossStreak++;
-  const el = document.createElement('div');
-  el.className = 'loss-react';
+  if (abs < 40) return; // мелкие ставки игнор
+  _lossCount++;
+  if (_lossCount < _lossNextAt) return;
+  // показать и сбросить счётчик
+  _lossCount = 0;
+  _lossNextAt = 4 + Math.floor(Math.random() * 7); // снова 4..10
+
   const phrases = [
     'Ой… тримайся 💪',
     'Зал видихнув з тобою',
     'Це був важкий удар',
     'Наступна — твоя',
-    'Не здавайся, легендо'
+    'Не здавайся, легендо',
+    'Дихай. Ще одна спроба.',
+    'Потужно тримаєшся'
   ];
-  el.textContent = phrases[Math.min(_lossStreak - 1, phrases.length - 1)];
+  const el = document.createElement('div');
+  el.className = 'loss-react';
+  el.textContent = phrases[Math.floor(Math.random() * phrases.length)];
   document.body.appendChild(el);
   requestAnimationFrame(() => el.classList.add('show'));
   document.body.classList.add('loss-dim');
