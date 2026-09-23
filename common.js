@@ -2377,18 +2377,36 @@ document.addEventListener('DOMContentLoaded', () => {
   scheduleBusikFlybys();
 });
 
-/* Jackpot: піздатий оверлей */
-(function hookJackpotPizdaty() {
+/* Jackpot: піздатий оверлей — всегда при джекпоте */
+function celebrateJackpot() {
+  try { playPizdatyJingle(10000); } catch (e) { console.warn(e); }
+  try { showPizdatyOverlay(); } catch (e) { console.warn(e); }
+  try { moneyRain(90); } catch (e) {}
+  try { screenShake(10); } catch (e) {}
+}
+window.celebrateJackpot = celebrateJackpot;
+
+function isJackpotTitle(title, sub) {
+  const t = ((title || '') + ' ' + (sub || '')).toLowerCase();
+  return (
+    t.includes('джекпот') ||
+    t.includes('мега') ||
+    t.includes('банк') ||
+    t.includes('jackpot') ||
+    t.includes('сорван')
+  );
+}
+
+function installJackpotHook() {
   const prev = showWinOverlay;
   showWinOverlay = function(title, sub) {
     prev(title, sub);
-    const t = ((title || '') + ' ' + (sub || '')).toLowerCase();
-    if (t.includes('джекпот') || t.includes('мега') || t.includes('банк') || t.includes('jackpot')) {
-      playPizdatyJingle();
-      showPizdatyOverlay();
+    if (isJackpotTitle(title, sub)) {
+      celebrateJackpot();
     }
   };
-})();
+}
+installJackpotHook();
 
 
 /* =========================================================
@@ -2612,4 +2630,10 @@ document.addEventListener('DOMContentLoaded', () => {
   scheduleHallHosts();
   scheduleWeather();
   renderVipBoard();
+});
+
+
+/* Final jackpot hook — last wrapper wins */
+document.addEventListener('DOMContentLoaded', () => {
+  installJackpotHook();
 });
