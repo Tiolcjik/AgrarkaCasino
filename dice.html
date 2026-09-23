@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Кости — Аграрка Элит Казино</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="topbar topbar-pro">
+  <a href="index.html" class="logo"><span class="crown">🌾</span> Аграрка Элит</a>
+  <div class="topbar-right">
+    <button id="sound-toggle" class="icon-tool-btn" title="Звук">🔊</button>
+    <div class="balance-pill balance-pill-pro">
+      <div class="balance-ring"></div>
+      <span class="chip-icon">💎</span>
+      <div class="balance-info">
+        <span class="balance-label">Твой баланс</span>
+        <span id="balance-amount">$1,000.00</span>
+      </div>
+    </div>
+  </div>
+</header>
+<div class="game-shell">
+  <a href="index.html" class="back-link">← Все игры</a>
+  <div class="game-panel" style="margin-top:16px;position:relative;">
+<div class="game-header-row">
+      <h2 class="game-title">🎲 Кости</h2>
+    </div>
+    <p style="color:var(--text-dim);font-size:13px;margin-top:-6px;text-align:center;">Over / Under — угадай, куда выпадет</p>
+    <div class="dice-stage">
+      <div class="dice-face" id="dice-face">?</div>
+      <p style="text-align:center;color:var(--text-dimmer);font-size:12px;margin:0;">Цель: <b id="dice-target" style="color:var(--gold-bright)">50</b></p>
+    </div>
+    <div class="dice-controls">
+      <button class="dice-mode-btn active" data-mode="under">↓ Under</button>
+      <button class="dice-mode-btn" data-mode="over">↑ Over</button>
+    </div>
+    <div class="bet-display">Ставка: <b id="current-bet">$100</b> · Множитель: <b id="dice-mult">×1.96</b></div>
+    <div class="chip-row" id="chip-row">
+      <div class="chip" data-bet="50">50</div>
+      <div class="chip active" data-bet="100">100</div>
+      <div class="chip" data-bet="250">250</div>
+      <div class="chip" data-bet="500">500</div>
+      <div class="chip chip-hi" data-bet="1000">1K</div>
+      <div class="chip chip-hi" data-bet="5000">5K</div>
+      <div class="chip chip-hi" data-bet="10000">10K</div>
+      <div class="chip chip-max" data-bet="max">MAX</div>
+
+    </div>
+    <div class="custom-bet-row">
+      <label>Своя ставка $</label>
+      <input type="number" id="custom-bet-input" min="1" step="1" placeholder="100">
+      <button type="button" id="custom-bet-apply">OK</button>
+    </div>
+
+      <div class="chip active" data-bet="100">100</div>
+      <div class="chip" data-bet="250">250</div>
+      <div class="chip" data-bet="500">500</div>
+    </div>
+    <label style="display:block;text-align:center;font-size:12px;color:var(--text-dimmer);margin-bottom:6px;">Порог (1–99)</label>
+    <input type="range" id="dice-slider" min="5" max="95" value="50" style="width:100%;max-width:280px;display:block;margin:0 auto 16px;">
+    <button class="primary-btn" id="roll-btn">Бросить кости</button>
+    <p class="game-message" id="dice-message"></p>
+  </div>
+</div>
+<div class="win-overlay" id="win-overlay"><div class="win-card"><span class="win-title">Угадал!</span><span class="sub"></span></div></div>
+<div id="toast-stack"></div>
+<div id="meme-popup" class="meme-popup" hidden>
+  <div class="meme-popup-card">
+    <button class="meme-popup-close" id="meme-popup-close">✕</button>
+    <div class="meme-popup-emoji" id="meme-popup-emoji">🐸</div>
+    <p id="meme-popup-text"></p>
+  </div>
+</div>
+<script src="common.js"></script>
+<script src="dice.js"></script>
+</body>
+</html>

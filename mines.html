@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Міни — Аграрка Элит Казино</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="topbar topbar-pro">
+  <a href="index.html" class="logo"><span class="crown">🌾</span> Аграрка Элит Казино</a>
+  <div class="topbar-right">
+    <button id="sound-toggle" class="icon-tool-btn" title="Звук">🔊</button>
+    <div class="balance-pill balance-pill-pro">
+      <div class="balance-ring"></div>
+      <span class="chip-icon">💎</span>
+      <div class="balance-info">
+        <span class="balance-label">Твой баланс</span>
+        <span id="balance-amount">$1,000.00</span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="game-shell">
+  <a href="index.html" class="back-link">← Все игры</a>
+
+  <div class="game-panel" style="margin-top:16px;position:relative;">
+<div class="game-header-row">
+      <h2 class="game-title">💣 Міни</h2>
+    </div>
+    <p style="color:var(--text-dim);font-size:13px;margin-top:-8px;">Відкривай клітинки поля, збирай потужні множники — і забирай виграш, поки не підірвався 💥</p>
+
+    <div class="mines-stage">
+      <div class="mines-grid" id="mines-grid"></div>
+    </div>
+
+    <div class="mines-mult-row">
+      <div class="mines-mult-box">
+        <span class="lbl">Поточний множник</span>
+        <span class="val" id="mines-current-mult">×1.00</span>
+      </div>
+      <div class="mines-mult-box">
+        <span class="lbl">Можна забрати</span>
+        <span class="val gold" id="mines-potential-win">$0</span>
+      </div>
+    </div>
+
+    <div class="bet-display">Ставка: <b id="current-bet">$100</b></div>
+    <div class="chip-row" id="chip-row">
+      <div class="chip" data-bet="50">50</div>
+      <div class="chip active" data-bet="100">100</div>
+      <div class="chip" data-bet="250">250</div>
+      <div class="chip" data-bet="500">500</div>
+      <div class="chip chip-hi" data-bet="1000">1K</div>
+      <div class="chip chip-hi" data-bet="5000">5K</div>
+      <div class="chip chip-hi" data-bet="10000">10K</div>
+      <div class="chip chip-max" data-bet="max">MAX</div>
+
+    </div>
+    <div class="custom-bet-row">
+      <label>Своя ставка $</label>
+      <input type="number" id="custom-bet-input" min="1" step="1" placeholder="100">
+      <button type="button" id="custom-bet-apply">OK</button>
+    </div>
+
+      <div class="chip active" data-bet="100">100</div>
+      <div class="chip" data-bet="250">250</div>
+      <div class="chip" data-bet="500">500</div>
+    </div>
+
+    <p class="bet-board-label">Кількість мін на полі</p>
+    <div class="mines-count-row" id="mines-count-row">
+      <button class="mines-count-btn active" data-mines="3">3 💣</button>
+      <button class="mines-count-btn" data-mines="5">5 💣</button>
+      <button class="mines-count-btn" data-mines="7">7 💣</button>
+      <button class="mines-count-btn" data-mines="10">10 💣</button>
+      <button class="mines-count-btn" data-mines="15">15 💣</button>
+    </div>
+
+    <div class="btn-row">
+      <button class="primary-btn" id="mines-start-btn">Почати раунд</button>
+      <button class="secondary-btn hidden" id="mines-cashout-btn">Забрати виграш</button>
+    </div>
+
+    <p class="game-message" id="mines-message"></p>
+  </div>
+</div>
+
+<div class="win-overlay" id="win-overlay">
+  <div class="win-card">
+    <span class="win-title">Потужно! 🔥</span>
+    <span class="sub"></span>
+  </div>
+</div>
+
+<div id="toast-stack"></div>
+<div id="meme-popup" class="meme-popup" hidden>
+  <div class="meme-popup-card">
+    <button class="meme-popup-close" id="meme-popup-close">✕</button>
+    <div class="meme-popup-emoji" id="meme-popup-emoji">🐸</div>
+    <p id="meme-popup-text"></p>
+  </div>
+</div>
+
+<script src="common.js"></script>
+<script src="mines.js"></script>
+</body>
+</html>
