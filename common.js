@@ -2226,7 +2226,7 @@ function showBusikPopup() {
     el = document.createElement('div');
     el.id = 'busik-popup';
     el.className = 'busik-popup';
-    el.innerHTML = '<div class="busik-popup-inner">🚌 чекає бусік хлопец</div>';
+    el.innerHTML = '<div class="busik-popup-inner">🚌 тебе чекає бусік хлопец</div>';
     document.body.appendChild(el);
   }
   el.classList.remove('hide');

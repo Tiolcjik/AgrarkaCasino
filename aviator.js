@@ -190,7 +190,7 @@ function draw(progress, elapsedSec) {
     ctx.textBaseline = 'middle';
     ctx.fillText('💥', 0, 0);
   } else if (planeImg && planeImg.complete && planeImg.naturalWidth > 0) {
-    const pw = 128;
+    const pw = 92;
     const ph = pw * (planeImg.naturalHeight / planeImg.naturalWidth);
     // лёгкая тень только под объектом, без «коробки»
     ctx.shadowColor = 'rgba(0,0,0,0.35)';
