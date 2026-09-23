@@ -4,6 +4,12 @@
 
 const canvas = document.getElementById('aviator-canvas');
 const ctx = canvas.getContext('2d');
+
+// Кастомный «бочко-літак»
+const planeImg = new Image();
+planeImg.src = 'plane-barrel.png';
+planeImg.onload = () => { try { if (typeof draw === 'function') draw(0, 0); } catch (e) {} };
+
 const multEl = document.getElementById('aviator-multiplier');
 const stateLabelEl = document.getElementById('aviator-state-label');
 const historyEl = document.getElementById('aviator-history');
@@ -163,16 +169,28 @@ function draw(progress, elapsedSec) {
   ctx.fillStyle = fillGrad;
   ctx.fill();
 
-  // plane
-  ctx.font = '28px sans-serif';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
+  // plane — бочко-літак (кастомная картинка)
   ctx.save();
   ctx.translate(cx, cy);
-  ctx.rotate(-0.5);
-  ctx.shadowColor = 'rgba(0,0,0,0.5)';
-  ctx.shadowBlur = 8;
-  ctx.fillText(phase === 'crashed' ? '💥' : '✈️', 0, 0);
+  ctx.rotate(-0.35);
+  ctx.shadowColor = 'rgba(0,0,0,0.55)';
+  ctx.shadowBlur = 12;
+  if (phase === 'crashed') {
+    ctx.font = '36px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.shadowBlur = 8;
+    ctx.fillText('💥', 0, 0);
+  } else if (planeImg && planeImg.complete && planeImg.naturalWidth) {
+    const pw = 88;
+    const ph = pw * (planeImg.naturalHeight / planeImg.naturalWidth);
+    ctx.drawImage(planeImg, -pw * 0.45, -ph * 0.55, pw, ph);
+  } else {
+    ctx.font = '28px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('✈️', 0, 0);
+  }
   ctx.restore();
 }
 
