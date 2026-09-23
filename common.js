@@ -2179,15 +2179,107 @@ const GAME_LABELS = {
 };
 
 /* =========================================================
-   BUSIK FLYBY — random big plane across home page
+   BUSIK FLYBY — random directions + anthem + jackpot anthem
    ========================================================= */
+
+function _note(freq, start, dur, type, vol) {
+  if (!soundOn) return;
+  try {
+    const ctx = _audioCtx();
+    if (!ctx) return;
+    const t0 = ctx.currentTime + start;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = type || 'triangle';
+    osc.frequency.setValueAtTime(freq, t0);
+    gain.gain.setValueAtTime(0.0001, t0);
+    gain.gain.exponentialRampToValueAtTime(vol || 0.1, t0 + 0.03);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(t0);
+    osc.stop(t0 + dur + 0.05);
+  } catch (e) {}
+}
+
+/** Упрощённая мелодия в духе гімну (синтез, не запис) */
+function playUkraineAnthemSnippet() {
+  if (!soundOn) return;
+  // приблизні ноти вступу (G major-ish fanfare)
+  const melody = [
+    [392, 0.00, 0.35], [440, 0.35, 0.28], [494, 0.63, 0.28],
+    [523, 0.91, 0.45], [494, 1.36, 0.25], [440, 1.61, 0.25],
+    [392, 1.86, 0.40], [349, 2.26, 0.30], [392, 2.56, 0.55],
+    [440, 3.15, 0.30], [494, 3.45, 0.30], [523, 3.75, 0.70],
+    [587, 4.50, 0.35], [523, 4.85, 0.35], [494, 5.20, 0.50],
+    [440, 5.75, 0.40], [392, 6.20, 0.80]
+  ];
+  melody.forEach(([f, s, d]) => {
+    _note(f, s, d, 'triangle', 0.11);
+    _note(f * 2, s, d * 0.9, 'sine', 0.04);
+  });
+  // бас
+  [[196, 0, 0.9], [196, 1.8, 0.7], [262, 3.5, 0.8], [196, 5.5, 1.0]].forEach(([f, s, d]) => {
+    _note(f, s, d, 'sawtooth', 0.05);
+  });
+}
+
+/** «Я піздатий ахуєнний сучасний» — синтез-джингл на джекпот */
+function playPizdatyJingle() {
+  if (!soundOn) return;
+  // бомбастий самохвальний ритм
+  const lines = [
+    [523, 0.0, 0.18], [523, 0.2, 0.18], [659, 0.4, 0.22], [784, 0.65, 0.35],
+    [698, 1.05, 0.18], [659, 1.25, 0.18], [587, 1.45, 0.22], [523, 1.7, 0.4],
+    [784, 2.2, 0.2], [880, 2.45, 0.2], [988, 2.7, 0.25], [1047, 3.0, 0.55],
+    [988, 3.6, 0.2], [880, 3.85, 0.2], [784, 4.1, 0.25], [659, 4.4, 0.5]
+  ];
+  lines.forEach(([f, s, d]) => {
+    _note(f, s, d, 'square', 0.08);
+    _note(f * 1.5, s + 0.02, d * 0.8, 'triangle', 0.05);
+  });
+  // kick-ish
+  for (let i = 0; i < 8; i++) {
+    _note(80, i * 0.55, 0.12, 'sine', 0.12);
+  }
+  try { _noise(0.15, 0.06); } catch(e) {}
+  setTimeout(() => { try { SFX.bigWin(); } catch(e) {} }, 200);
+}
+
+function showPizdatyOverlay() {
+  let el = document.getElementById('pizdaty-overlay');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'pizdaty-overlay';
+    el.className = 'pizdaty-overlay';
+    el.innerHTML = `
+      <div class="pizdaty-card">
+        <div class="pizdaty-fire">🔥💰🔥</div>
+        <div class="pizdaty-line">Я ПІЗДАТИЙ</div>
+        <div class="pizdaty-line accent">АХУЄННИЙ</div>
+        <div class="pizdaty-line">СУЧАСНИЙ</div>
+        <div class="pizdaty-sub">і взагалі легенда цього залу</div>
+      </div>`;
+    document.body.appendChild(el);
+  }
+  el.classList.remove('hide');
+  el.classList.add('show');
+  document.body.classList.add('jackpot-shake');
+  moneyRain(100);
+  screenShake(12);
+  setTimeout(() => {
+    el.classList.remove('show');
+    el.classList.add('hide');
+    document.body.classList.remove('jackpot-shake');
+  }, 4500);
+}
+
 function playPlaneWhoosh() {
   if (!soundOn) return;
   try {
     const ctx = _audioCtx();
     if (!ctx) return;
     const t0 = ctx.currentTime;
-    // engine drone
     const osc = ctx.createOscillator();
     const osc2 = ctx.createOscillator();
     const gain = ctx.createGain();
@@ -2204,19 +2296,14 @@ function playPlaneWhoosh() {
     osc2.frequency.setValueAtTime(110, t0);
     osc2.frequency.linearRampToValueAtTime(70, t0 + 3);
     gain.gain.setValueAtTime(0.0001, t0);
-    gain.gain.exponentialRampToValueAtTime(0.12, t0 + 0.3);
-    gain.gain.setValueAtTime(0.12, t0 + 2.2);
+    gain.gain.exponentialRampToValueAtTime(0.1, t0 + 0.3);
+    gain.gain.setValueAtTime(0.1, t0 + 2.2);
     gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 3.2);
-    osc.connect(filter);
-    osc2.connect(filter);
-    filter.connect(gain);
-    gain.connect(ctx.destination);
+    osc.connect(filter); osc2.connect(filter);
+    filter.connect(gain); gain.connect(ctx.destination);
     osc.start(t0); osc2.start(t0);
     osc.stop(t0 + 3.3); osc2.stop(t0 + 3.3);
-    // noise wind
     _noise(0.4, 0.04);
-    setTimeout(() => { try { _noise(0.5, 0.05); } catch(e) {} }, 800);
-    setTimeout(() => { try { _tone(180, 0.3, 'sawtooth', 0.06, 90); } catch(e) {} }, 200);
   } catch (e) {}
 }
 
@@ -2239,22 +2326,21 @@ function showBusikPopup() {
   }, 3200);
 }
 
+const BUSIK_DIRS = ['from-left', 'from-right', 'from-top', 'from-bottom', 'from-tl', 'from-tr', 'from-bl', 'from-br'];
+
 function runBusikFlyby() {
   if (!document.body.classList.contains('home-page')) return;
   if (document.getElementById('busik-flyer')) return;
 
+  const dir = BUSIK_DIRS[Math.floor(Math.random() * BUSIK_DIRS.length)];
   const flyer = document.createElement('div');
   flyer.id = 'busik-flyer';
-  flyer.className = 'busik-flyer';
+  flyer.className = 'busik-flyer ' + dir;
   const img = document.createElement('img');
   img.alt = 'бусік';
-  img.src = 'plane-barrel.png?v=nofg4';
-  img.onerror = function() {
-    // if missing, hide flyby
-    flyer.remove();
-  };
+  img.src = 'plane-barrel.png?v=nofg5';
+  img.onerror = function() { flyer.remove(); };
   flyer.appendChild(img);
-  // trail particles
   for (let i = 0; i < 12; i++) {
     const p = document.createElement('span');
     p.className = 'busik-spark';
@@ -2264,6 +2350,7 @@ function runBusikFlyby() {
   document.body.appendChild(flyer);
 
   playPlaneWhoosh();
+  playUkraineAnthemSnippet();
   requestAnimationFrame(() => flyer.classList.add('fly'));
 
   setTimeout(() => {
@@ -2275,11 +2362,9 @@ function runBusikFlyby() {
 
 function scheduleBusikFlybys() {
   if (!document.body.classList.contains('home-page')) return;
-  // first flyby after 8–18s
   const first = 8000 + Math.random() * 10000;
   setTimeout(function loop() {
     runBusikFlyby();
-    // next every 25–55s
     setTimeout(loop, 25000 + Math.random() * 30000);
   }, first);
 }
@@ -2287,3 +2372,17 @@ function scheduleBusikFlybys() {
 document.addEventListener('DOMContentLoaded', () => {
   scheduleBusikFlybys();
 });
+
+/* Jackpot: піздатий оверлей */
+(function hookJackpotPizdaty() {
+  const prev = showWinOverlay;
+  showWinOverlay = function(title, sub) {
+    prev(title, sub);
+    const t = ((title || '') + ' ' + (sub || '')).toLowerCase();
+    if (t.includes('джекпот') || t.includes('мега') || t.includes('банк') || t.includes('jackpot')) {
+      playPizdatyJingle();
+      showPizdatyOverlay();
+    }
+  };
+})();
+
