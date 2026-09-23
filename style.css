@@ -5351,3 +5351,16 @@ button, .chip, .primary-btn, a.play-btn {
     text-overflow: ellipsis;
   }
 }
+
+/* Mobile: topbar scrolls away with page (not sticky) — PC unchanged */
+@media (max-width: 640px) {
+  header.topbar,
+  header.topbar-pro,
+  .home-page .topbar,
+  .topbar,
+  .topbar-pro {
+    position: relative !important;
+    top: auto !important;
+    z-index: 20 !important;
+  }
+}
