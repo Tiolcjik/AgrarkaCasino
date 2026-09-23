@@ -5160,3 +5160,194 @@ body {
 button, .chip, .primary-btn, a.play-btn {
   touch-action: manipulation;
 }
+
+/* =========================================================
+   MOBILE TOPBAR v2 — clean stacked layout (phone only)
+   PC layout unchanged (rules only inside max-width: 640px)
+   ========================================================= */
+@media (max-width: 640px) {
+  /* Shell: column */
+  header.topbar,
+  header.topbar-pro {
+    display: flex !important;
+    flex-direction: column !important;
+    flex-wrap: nowrap !important;
+    align-items: stretch !important;
+    gap: 10px !important;
+    padding: 12px 12px 14px !important;
+    position: relative !important;
+  }
+
+  /* Row 1: logo left, icons right */
+  header.topbar > .logo {
+    display: flex !important;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding-right: 96px; /* room for sound + cabinet */
+    margin: 0 !important;
+  }
+  header.topbar .logo-text {
+    font-size: 15px !important;
+    max-width: none !important;
+    white-space: nowrap;
+  }
+  header.topbar .logo-badge {
+    display: inline-block !important;
+    font-size: 9px !important;
+  }
+  header.topbar .crown { font-size: 18px; }
+
+  /* Float cabinet + sound to top-right of header */
+  header.topbar #cabinet-btn,
+  header.topbar #sound-toggle {
+    position: absolute !important;
+    top: 10px;
+    z-index: 5;
+    width: 42px !important;
+    height: 42px !important;
+    min-width: 42px !important;
+    border-radius: 12px !important;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255,255,255,0.06) !important;
+    border: 1px solid rgba(212,175,55,0.25) !important;
+    font-size: 18px !important;
+    padding: 0 !important;
+  }
+  header.topbar #cabinet-btn { right: 12px; }
+  header.topbar #sound-toggle { right: 60px; }
+  header.topbar #session-clock { display: none !important; }
+
+  /* Main controls grid */
+  header.topbar .topbar-right {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+    width: 100% !important;
+    margin: 0 !important;
+    flex: none !important;
+    align-items: stretch !important;
+  }
+
+  /* Order: auth → balance → deposit/withdraw → bonus/vip */
+  header.topbar #auth-user-box {
+    grid-column: 1 / -1 !important;
+    order: 1 !important;
+    display: flex !important;
+    gap: 8px !important;
+    width: 100%;
+  }
+  header.topbar #auth-user-box .auth-open-btn {
+    flex: 1 1 0 !important;
+    min-height: 44px !important;
+    border-radius: 12px !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    justify-content: center;
+  }
+  header.topbar #auth-user-box .auth-chip {
+    flex: 1 1 auto;
+    justify-content: center;
+    min-height: 44px;
+    border-radius: 12px;
+  }
+  header.topbar #auth-user-box .auth-logout {
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    border-radius: 12px !important;
+  }
+
+  header.topbar .balance-pill,
+  header.topbar .balance-pill-pro {
+    grid-column: 1 / -1 !important;
+    order: 2 !important;
+    width: 100% !important;
+    margin: 0 !important;
+    justify-content: center !important;
+    padding: 12px 14px !important;
+    border-radius: 14px !important;
+    min-height: 52px;
+  }
+  header.topbar .balance-label {
+    font-size: 10px !important;
+    letter-spacing: 0.5px;
+  }
+  header.topbar #balance-amount {
+    font-size: 20px !important;
+    font-weight: 800 !important;
+  }
+
+  header.topbar #deposit-btn {
+    order: 3 !important;
+    width: 100% !important;
+    min-height: 46px !important;
+    margin: 0 !important;
+    border-radius: 12px !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    padding: 12px 8px !important;
+  }
+  header.topbar #withdraw-btn {
+    order: 4 !important;
+    width: 100% !important;
+    min-height: 46px !important;
+    margin: 0 !important;
+    border-radius: 12px !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    padding: 12px 8px !important;
+  }
+  header.topbar #bonus-btn {
+    order: 5 !important;
+    width: 100% !important;
+    min-height: 44px !important;
+    margin: 0 !important;
+    border-radius: 12px !important;
+    font-size: 12.5px !important;
+    padding: 10px 8px !important;
+  }
+  header.topbar .vip-level-pill {
+    order: 6 !important;
+    width: 100% !important;
+    margin: 0 !important;
+    min-height: 44px !important;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px !important;
+    font-size: 13px !important;
+    padding: 10px 8px !important;
+  }
+
+  /* Hide duplicate absolute icons from grid flow */
+  header.topbar .topbar-right > #cabinet-btn,
+  header.topbar .topbar-right > #sound-toggle {
+    /* still position absolute relative to header */
+  }
+}
+
+/* Slightly wider phones still get stack */
+@media (min-width: 641px) and (max-width: 900px) {
+  header.topbar .topbar-right {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+}
+
+/* Game pages: shorter logo on mobile */
+@media (max-width: 640px) {
+  header.topbar > .logo {
+    font-size: 14px !important;
+    overflow: hidden;
+  }
+  /* If logo is plain text without .logo-text */
+  header.topbar > .logo:not(:has(.logo-text)) {
+    max-width: calc(100% - 100px);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
