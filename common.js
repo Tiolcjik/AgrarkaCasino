@@ -2202,48 +2202,49 @@ function _note(freq, start, dur, type, vol) {
   } catch (e) {}
 }
 
-/** Упрощённая мелодия в духе гімну (синтез, не запис) */
+/** Гімн України — реальний mp3 при прольоті бусіка */
+let _anthemAudio = null;
 function playUkraineAnthemSnippet() {
   if (!soundOn) return;
-  // приблизні ноти вступу (G major-ish fanfare)
-  const melody = [
-    [392, 0.00, 0.35], [440, 0.35, 0.28], [494, 0.63, 0.28],
-    [523, 0.91, 0.45], [494, 1.36, 0.25], [440, 1.61, 0.25],
-    [392, 1.86, 0.40], [349, 2.26, 0.30], [392, 2.56, 0.55],
-    [440, 3.15, 0.30], [494, 3.45, 0.30], [523, 3.75, 0.70],
-    [587, 4.50, 0.35], [523, 4.85, 0.35], [494, 5.20, 0.50],
-    [440, 5.75, 0.40], [392, 6.20, 0.80]
-  ];
-  melody.forEach(([f, s, d]) => {
-    _note(f, s, d, 'triangle', 0.11);
-    _note(f * 2, s, d * 0.9, 'sine', 0.04);
-  });
-  // бас
-  [[196, 0, 0.9], [196, 1.8, 0.7], [262, 3.5, 0.8], [196, 5.5, 1.0]].forEach(([f, s, d]) => {
-    _note(f, s, d, 'sawtooth', 0.05);
-  });
+  try {
+    if (_anthemAudio) {
+      try { _anthemAudio.pause(); } catch(e) {}
+    }
+    _anthemAudio = new Audio('anthem.mp3');
+    _anthemAudio.volume = 0.7;
+    _anthemAudio.currentTime = 0;
+    const p = _anthemAudio.play();
+    if (p && p.catch) p.catch(() => {});
+    // не тягти весь трек — зупинити через ~25с
+    setTimeout(() => {
+      try { if (_anthemAudio) { _anthemAudio.pause(); _anthemAudio.currentTime = 0; } } catch(e) {}
+    }, 25000);
+  } catch (e) {
+    console.warn('anthem play fail', e);
+  }
 }
 
-/** «Я піздатий ахуєнний сучасний» — синтез-джингл на джекпот */
+/** «Я пиздатый» — Lil Morty на джекпотах */
+let _pizdatyAudio = null;
 function playPizdatyJingle() {
   if (!soundOn) return;
-  // бомбастий самохвальний ритм
-  const lines = [
-    [523, 0.0, 0.18], [523, 0.2, 0.18], [659, 0.4, 0.22], [784, 0.65, 0.35],
-    [698, 1.05, 0.18], [659, 1.25, 0.18], [587, 1.45, 0.22], [523, 1.7, 0.4],
-    [784, 2.2, 0.2], [880, 2.45, 0.2], [988, 2.7, 0.25], [1047, 3.0, 0.55],
-    [988, 3.6, 0.2], [880, 3.85, 0.2], [784, 4.1, 0.25], [659, 4.4, 0.5]
-  ];
-  lines.forEach(([f, s, d]) => {
-    _note(f, s, d, 'square', 0.08);
-    _note(f * 1.5, s + 0.02, d * 0.8, 'triangle', 0.05);
-  });
-  // kick-ish
-  for (let i = 0; i < 8; i++) {
-    _note(80, i * 0.55, 0.12, 'sine', 0.12);
+  try {
+    if (_pizdatyAudio) {
+      try { _pizdatyAudio.pause(); } catch(e) {}
+    }
+    _pizdatyAudio = new Audio('pizdaty.mp3');
+    _pizdatyAudio.volume = 0.75;
+    _pizdatyAudio.currentTime = 0;
+    const p = _pizdatyAudio.play();
+    if (p && p.catch) p.catch(() => {});
+    // куплет ~25с, потім стоп
+    setTimeout(() => {
+      try { if (_pizdatyAudio) { _pizdatyAudio.pause(); _pizdatyAudio.currentTime = 0; } } catch(e) {}
+    }, 28000);
+    setTimeout(() => { try { SFX.bigWin(); } catch(e) {} }, 400);
+  } catch (e) {
+    console.warn('pizdaty play fail', e);
   }
-  try { _noise(0.15, 0.06); } catch(e) {}
-  setTimeout(() => { try { SFX.bigWin(); } catch(e) {} }, 200);
 }
 
 function showPizdatyOverlay() {
@@ -2386,3 +2387,217 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 })();
 
+
+/* =========================================================
+   HALL LIFE v7 — hosts, weather, VIP board, loss react, dance
+   ========================================================= */
+
+const HALL_HOSTS = [
+  { name: 'Anna · VIP', emoji: '👩‍🎤', lines: [
+    'Не жадничай, хлопче — удача любить сміливих.',
+    'Я б на твоєму місці крутила ще раз.',
+    'Стіл сьогодні гарячий. Відчуваєш?'
+  ]},
+  { name: 'Mia · Lucky', emoji: '🍀', lines: [
+    'Тихо… джекпот десь близько.',
+    'Ставка — це не витрата. Це інвестиція в перемогу.',
+    'Дихай рівно. І тисни.'
+  ]},
+  { name: 'Lena · Jackpot', emoji: '💎', lines: [
+    'Зал шепоче твоє ім\'я.',
+    'Великі виграші люблять тих, хто не здається.',
+    'Сьогодні твоя зміна. Не зливай момент.'
+  ]},
+  { name: 'Борис · Дилер', emoji: '🃏', lines: [
+    'Карти пам\'ятають все. Але ти можеш їх здивувати.',
+    'Ще одна рука — і історія зміниться.',
+    'Потужно граєш. Так тримати.'
+  ]},
+  { name: 'Олег · Охорона', emoji: '🕶️', lines: [
+    'Тут усе чесно… майже.',
+    'Бачу стрик. Не зупиняйся.',
+    'Зал під контролем. Ти — легенда вечора.'
+  ]}
+];
+
+function showHallHost() {
+  if (document.getElementById('hall-host-toast')) return;
+  const host = HALL_HOSTS[Math.floor(Math.random() * HALL_HOSTS.length)];
+  const line = host.lines[Math.floor(Math.random() * host.lines.length)];
+  const el = document.createElement('div');
+  el.id = 'hall-host-toast';
+  el.className = 'hall-host-toast';
+  el.innerHTML = `
+    <div class="hh-avatar">${host.emoji}</div>
+    <div class="hh-body">
+      <div class="hh-name">${host.name}</div>
+      <div class="hh-line">${line}</div>
+    </div>`;
+  document.body.appendChild(el);
+  requestAnimationFrame(() => el.classList.add('show'));
+  try { SFX.click(); } catch(e) {}
+  setTimeout(() => {
+    el.classList.remove('show');
+    setTimeout(() => el.remove(), 450);
+  }, 4500);
+}
+
+function scheduleHallHosts() {
+  const tick = () => {
+    // don't stack with busik popup
+    if (!document.getElementById('busik-flyer') && !document.getElementById('busik-popup')?.classList.contains('show')) {
+      showHallHost();
+    }
+    setTimeout(tick, 35000 + Math.random() * 40000);
+  };
+  setTimeout(tick, 12000 + Math.random() * 8000);
+}
+
+/* ---------- Weather ---------- */
+const WEATHER_MODES = [
+  { id: 'clear', label: '☀️ Ясно · зал у спокої' },
+  { id: 'rain', label: '🌧️ Дощ з гривень' },
+  { id: 'fog', label: '🌫️ Туман удачі' },
+  { id: 'neon', label: '💜 Неонова буря' },
+  { id: 'gold', label: '✨ Золотий пил' }
+];
+
+function setCasinoWeather(mode) {
+  document.body.classList.remove('wx-clear','wx-rain','wx-fog','wx-neon','wx-gold');
+  document.body.classList.add('wx-' + mode.id);
+  let badge = document.getElementById('weather-badge');
+  if (!badge) {
+    badge = document.createElement('div');
+    badge.id = 'weather-badge';
+    badge.className = 'weather-badge';
+    document.body.appendChild(badge);
+  }
+  badge.textContent = mode.label;
+  badge.classList.add('pulse');
+  setTimeout(() => badge.classList.remove('pulse'), 800);
+}
+
+function scheduleWeather() {
+  const cycle = () => {
+    const m = WEATHER_MODES[Math.floor(Math.random() * WEATHER_MODES.length)];
+    setCasinoWeather(m);
+    setTimeout(cycle, 45000 + Math.random() * 60000);
+  };
+  setCasinoWeather(WEATHER_MODES[0]);
+  setTimeout(cycle, 20000 + Math.random() * 15000);
+}
+
+/* ---------- VIP Leaderboard ---------- */
+function loadLeaderboard() {
+  try { return JSON.parse(localStorage.getItem('agrarka_leaders') || '[]'); }
+  catch(e) { return []; }
+}
+function saveLeaderboard(list) {
+  localStorage.setItem('agrarka_leaders', JSON.stringify(list.slice(0, 10)));
+}
+function recordLeaderWin(amount) {
+  if (!amount || amount < 50) return;
+  const user = (typeof currentAccount === 'function' && currentAccount()) || null;
+  const name = user ? (user.name || user.login) : 'Гість';
+  const list = loadLeaderboard();
+  list.push({ name, amount: Math.round(amount * 100) / 100, at: Date.now() });
+  list.sort((a, b) => b.amount - a.amount);
+  saveLeaderboard(list);
+  renderVipBoard();
+}
+function renderVipBoard() {
+  let board = document.getElementById('vip-board');
+  if (!board) {
+    board = document.createElement('div');
+    board.id = 'vip-board';
+    board.className = 'vip-board';
+    board.innerHTML = `
+      <div class="vb-head">🏆 VIP-стіл · топ сесії</div>
+      <ol class="vb-list" id="vip-board-list"></ol>
+      <button type="button" class="vb-toggle" id="vb-toggle">згорнути</button>`;
+    document.body.appendChild(board);
+    board.querySelector('#vb-toggle').onclick = () => {
+      board.classList.toggle('collapsed');
+      board.querySelector('#vb-toggle').textContent =
+        board.classList.contains('collapsed') ? 'розгорнути' : 'згорнути';
+    };
+  }
+  const list = loadLeaderboard();
+  const ol = board.querySelector('#vip-board-list');
+  if (!list.length) {
+    ol.innerHTML = '<li class="vb-empty">Ще немає виграшів — будь першим</li>';
+    return;
+  }
+  ol.innerHTML = list.slice(0, 5).map((r, i) =>
+    `<li><span class="vb-rank">${i + 1}</span><span class="vb-name">${r.name}</span><span class="vb-amt">$${r.amount.toLocaleString('en-US')}</span></li>`
+  ).join('');
+}
+
+/* ---------- Big loss reaction ---------- */
+let _lossStreak = 0;
+function reactBigLoss(amount) {
+  const abs = Math.abs(amount);
+  if (abs < 80) { _lossStreak = 0; return; }
+  _lossStreak++;
+  const el = document.createElement('div');
+  el.className = 'loss-react';
+  const phrases = [
+    'Ой… тримайся 💪',
+    'Зал видихнув з тобою',
+    'Це був важкий удар',
+    'Наступна — твоя',
+    'Не здавайся, легендо'
+  ];
+  el.textContent = phrases[Math.min(_lossStreak - 1, phrases.length - 1)];
+  document.body.appendChild(el);
+  requestAnimationFrame(() => el.classList.add('show'));
+  document.body.classList.add('loss-dim');
+  try { SFX.lose && SFX.lose(); } catch(e) { try { _tone(120, 0.25, 'sine', 0.08, 80); } catch(x) {} }
+  setTimeout(() => {
+    el.classList.remove('show');
+    document.body.classList.remove('loss-dim');
+    setTimeout(() => el.remove(), 400);
+  }, 2200);
+}
+
+/* ---------- Balance dance on win ---------- */
+function danceBalance() {
+  const pill = document.querySelector('.balance-pill') || balanceEl;
+  if (!pill) return;
+  pill.classList.remove('balance-dance');
+  void pill.offsetWidth;
+  pill.classList.add('balance-dance');
+  setTimeout(() => pill.classList.remove('balance-dance'), 1200);
+}
+
+/* ---------- Hooks ---------- */
+(function hallLifeHooks() {
+  const _ub = updateBalance;
+  window.updateBalance = function(amount) {
+    _ub(amount);
+    if (amount < 0) reactBigLoss(amount);
+    if (amount > 0) {
+      danceBalance();
+      if (amount >= 50) recordLeaderWin(amount);
+    }
+  };
+
+  // also hook showWinOverlay for leader + dance
+  const _sw = showWinOverlay;
+  showWinOverlay = function(title, sub) {
+    _sw(title, sub);
+    danceBalance();
+    // parse win amount from sub if possible
+    const m = String(sub || '').match(/[\d,.]+/);
+    if (m) {
+      const n = parseFloat(m[0].replace(/,/g, ''));
+      if (!isNaN(n) && n >= 50) recordLeaderWin(n);
+    }
+  };
+})();
+
+document.addEventListener('DOMContentLoaded', () => {
+  scheduleHallHosts();
+  scheduleWeather();
+  renderVipBoard();
+});
