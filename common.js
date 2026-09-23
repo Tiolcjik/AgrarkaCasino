@@ -2177,3 +2177,113 @@ const GAME_LABELS = {
   mines: 'Мины', plinko: 'Плинко', dice: 'Кости', wheel: 'Колесо',
   hilo: 'Hi-Lo', keno: 'Кено', poker: 'Покер', scratch: 'Скретч', lobby: 'Лобби'
 };
+
+/* =========================================================
+   BUSIK FLYBY — random big plane across home page
+   ========================================================= */
+function playPlaneWhoosh() {
+  if (!soundOn) return;
+  try {
+    const ctx = _audioCtx();
+    if (!ctx) return;
+    const t0 = ctx.currentTime;
+    // engine drone
+    const osc = ctx.createOscillator();
+    const osc2 = ctx.createOscillator();
+    const gain = ctx.createGain();
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(400, t0);
+    filter.frequency.exponentialRampToValueAtTime(1200, t0 + 1.2);
+    filter.frequency.exponentialRampToValueAtTime(300, t0 + 2.8);
+    osc.type = 'sawtooth';
+    osc2.type = 'square';
+    osc.frequency.setValueAtTime(55, t0);
+    osc.frequency.linearRampToValueAtTime(90, t0 + 1.5);
+    osc.frequency.linearRampToValueAtTime(50, t0 + 3);
+    osc2.frequency.setValueAtTime(110, t0);
+    osc2.frequency.linearRampToValueAtTime(70, t0 + 3);
+    gain.gain.setValueAtTime(0.0001, t0);
+    gain.gain.exponentialRampToValueAtTime(0.12, t0 + 0.3);
+    gain.gain.setValueAtTime(0.12, t0 + 2.2);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 3.2);
+    osc.connect(filter);
+    osc2.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(t0); osc2.start(t0);
+    osc.stop(t0 + 3.3); osc2.stop(t0 + 3.3);
+    // noise wind
+    _noise(0.4, 0.04);
+    setTimeout(() => { try { _noise(0.5, 0.05); } catch(e) {} }, 800);
+    setTimeout(() => { try { _tone(180, 0.3, 'sawtooth', 0.06, 90); } catch(e) {} }, 200);
+  } catch (e) {}
+}
+
+function showBusikPopup() {
+  let el = document.getElementById('busik-popup');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'busik-popup';
+    el.className = 'busik-popup';
+    el.innerHTML = '<div class="busik-popup-inner">🚌 чекає бусік хлопец</div>';
+    document.body.appendChild(el);
+  }
+  el.classList.remove('hide');
+  el.classList.add('show');
+  try { SFX.win(); } catch(e) {}
+  setTimeout(() => {
+    el.classList.remove('show');
+    el.classList.add('hide');
+    setTimeout(() => el.classList.remove('hide'), 600);
+  }, 3200);
+}
+
+function runBusikFlyby() {
+  if (!document.body.classList.contains('home-page')) return;
+  if (document.getElementById('busik-flyer')) return;
+
+  const flyer = document.createElement('div');
+  flyer.id = 'busik-flyer';
+  flyer.className = 'busik-flyer';
+  const img = document.createElement('img');
+  img.alt = 'бусік';
+  img.src = 'plane-barrel.png?v=nofg4';
+  img.onerror = function() {
+    // if missing, hide flyby
+    flyer.remove();
+  };
+  flyer.appendChild(img);
+  // trail particles
+  for (let i = 0; i < 12; i++) {
+    const p = document.createElement('span');
+    p.className = 'busik-spark';
+    p.style.setProperty('--i', i);
+    flyer.appendChild(p);
+  }
+  document.body.appendChild(flyer);
+
+  playPlaneWhoosh();
+  requestAnimationFrame(() => flyer.classList.add('fly'));
+
+  setTimeout(() => {
+    flyer.classList.add('done');
+    showBusikPopup();
+    setTimeout(() => flyer.remove(), 500);
+  }, 2800);
+}
+
+function scheduleBusikFlybys() {
+  if (!document.body.classList.contains('home-page')) return;
+  // first flyby after 8–18s
+  const first = 8000 + Math.random() * 10000;
+  setTimeout(function loop() {
+    runBusikFlyby();
+    // next every 25–55s
+    setTimeout(loop, 25000 + Math.random() * 30000);
+  }, first);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  scheduleBusikFlybys();
+});

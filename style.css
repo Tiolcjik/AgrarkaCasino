@@ -5364,3 +5364,88 @@ button, .chip, .primary-btn, a.play-btn {
     z-index: 20 !important;
   }
 }
+
+/* Busik flyby on home */
+.busik-flyer {
+  position: fixed;
+  left: -40vw;
+  top: 28%;
+  z-index: 9500;
+  pointer-events: none;
+  width: min(52vw, 420px);
+  transform: translateY(0) rotate(-8deg);
+  opacity: 0;
+  filter: drop-shadow(0 12px 28px rgba(0,0,0,0.45));
+}
+.busik-flyer img {
+  width: 100%;
+  height: auto;
+  display: block;
+  background: transparent !important;
+}
+.busik-flyer.fly {
+  animation: busik-cross 2.8s cubic-bezier(0.22, 0.6, 0.35, 1) forwards;
+}
+.busik-flyer.done { opacity: 0; transition: opacity 0.4s; }
+@keyframes busik-cross {
+  0%   { left: -45vw; top: 38%; opacity: 0; transform: rotate(-12deg) scale(0.85); }
+  8%   { opacity: 1; }
+  50%  { top: 22%; transform: rotate(-4deg) scale(1.05); }
+  92%  { opacity: 1; }
+  100% { left: 105vw; top: 18%; opacity: 0; transform: rotate(6deg) scale(0.9); }
+}
+.busik-spark {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 0%, #00e5ff 40%, transparent 70%);
+  left: 10%;
+  top: 50%;
+  opacity: 0;
+  animation: busik-spark 2.8s ease-out forwards;
+  animation-delay: calc(var(--i) * 0.08s);
+}
+@keyframes busik-spark {
+  0% { opacity: 0; transform: translate(0,0) scale(0.5); }
+  30% { opacity: 0.9; }
+  100% { opacity: 0; transform: translate(-80px, calc((var(--i) - 6) * 12px)) scale(0.2); }
+}
+
+.busik-popup {
+  position: fixed;
+  inset: 0;
+  z-index: 9600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+.busik-popup.show { opacity: 1; }
+.busik-popup.hide { opacity: 0; }
+.busik-popup-inner {
+  background: linear-gradient(145deg, rgba(20,10,40,0.95), rgba(8,3,20,0.98));
+  border: 2px solid rgba(212,175,55,0.55);
+  box-shadow: 0 0 40px rgba(255,46,154,0.35), 0 20px 60px rgba(0,0,0,0.5);
+  color: var(--gold-bright, #ffe08a);
+  font-family: var(--font-display, Cinzel, serif);
+  font-size: clamp(22px, 5vw, 36px);
+  font-weight: 800;
+  letter-spacing: 1px;
+  padding: 22px 36px;
+  border-radius: 20px;
+  text-align: center;
+  animation: busik-pop 0.45s cubic-bezier(0.22, 1.2, 0.36, 1);
+  backdrop-filter: blur(12px);
+}
+@keyframes busik-pop {
+  0% { transform: scale(0.6) rotate(-4deg); opacity: 0; }
+  100% { transform: scale(1) rotate(0); opacity: 1; }
+}
+
+@media (max-width: 600px) {
+  .busik-flyer { width: min(70vw, 280px); top: 30%; }
+  .busik-popup-inner { font-size: 20px; padding: 16px 22px; margin: 0 16px; }
+}
