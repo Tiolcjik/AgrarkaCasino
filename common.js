@@ -1982,9 +1982,9 @@ function initSessionChrome() {
 
   function checkHighRoller() {
     if (typeof balance === 'number' && balance >= 10000) {
-      document.body.classList.add('high-roller');
+      /* high-roller badge disabled */
     } else {
-      document.body.classList.remove('high-roller');
+      document.body.classList.remove('high-roller'); /* keep cleanup */
     }
   }
   checkHighRoller();
@@ -2599,14 +2599,10 @@ function setCasinoWeather(mode) {
 }
 
 function scheduleWeather() {
-  if (!document.body.classList.contains('home-page')) return;
-  const cycle = () => {
-    const m = WEATHER_MODES[Math.floor(Math.random() * WEATHER_MODES.length)];
-    setCasinoWeather(m);
-    setTimeout(cycle, 70000 + Math.random() * 60000);
-  };
-  setCasinoWeather(WEATHER_MODES[0]);
-  setTimeout(cycle, 30000 + Math.random() * 20000);
+  /* disabled: weather badge removed from UI */
+  const b = document.getElementById('weather-badge');
+  if (b) b.remove();
+  document.body.classList.remove('wx-clear','wx-rain','wx-fog','wx-neon','wx-gold');
 }
 
 /* ---------- VIP Leaderboard ---------- */
@@ -2628,31 +2624,9 @@ function recordLeaderWin(amount) {
   renderVipBoard();
 }
 function renderVipBoard() {
-  let board = document.getElementById('vip-board');
-  if (!board) {
-    board = document.createElement('div');
-    board.id = 'vip-board';
-    board.className = 'vip-board';
-    board.innerHTML = `
-      <div class="vb-head">🏆 VIP-стіл · топ сесії</div>
-      <ol class="vb-list" id="vip-board-list"></ol>
-      <button type="button" class="vb-toggle" id="vb-toggle">згорнути</button>`;
-    document.body.appendChild(board);
-    board.querySelector('#vb-toggle').onclick = () => {
-      board.classList.toggle('collapsed');
-      board.querySelector('#vb-toggle').textContent =
-        board.classList.contains('collapsed') ? 'розгорнути' : 'згорнути';
-    };
-  }
-  const list = loadLeaderboard();
-  const ol = board.querySelector('#vip-board-list');
-  if (!list.length) {
-    ol.innerHTML = '<li class="vb-empty">Ще немає виграшів — будь першим</li>';
-    return;
-  }
-  ol.innerHTML = list.slice(0, 5).map((r, i) =>
-    `<li><span class="vb-rank">${i + 1}</span><span class="vb-name">${r.name}</span><span class="vb-amt">$${r.amount.toLocaleString('en-US')}</span></li>`
-  ).join('');
+  /* disabled: VIP board removed from UI */
+  const board = document.getElementById('vip-board');
+  if (board) board.remove();
 }
 
 /* ---------- Big loss reaction ---------- */

@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<title>Omaha VIP — Аграрка Элит</title>
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="poker-multi.css">
+</head>
+<body>
+<div class="fx-layer">
+  <div class="fx-orb o1"></div>
+  <div class="fx-orb o2"></div>
+  <div class="fx-orb o3"></div>
+</div>
+
+<header class="topbar topbar-pro">
+  <a href="index.html" class="logo"><span class="crown">🌾</span> Аграрка Элит</a>
+  <div class="topbar-right">
+    <div class="balance-pill balance-pill-pro">
+      <span class="chip-icon">💎</span>
+      <div class="balance-info">
+        <span class="balance-label">Баланс</span>
+        <span id="balance-amount">$1,000.00</span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="page">
+  <a href="index.html" class="back-link" style="display:inline-flex;margin-bottom:8px;font-size:13px">← На главную</a>
+
+  <div class="grid">
+    <aside class="side">
+      <h3>♠ КОМБИНАЦИИ</h3>
+      <div class="combo" data-r="8"><span class="n">1</span> Стрит-флеш</div>
+      <div class="combo" data-r="7"><span class="n">2</span> Каре</div>
+      <div class="combo" data-r="6"><span class="n">3</span> Фулл-хаус</div>
+      <div class="combo" data-r="5"><span class="n">4</span> Флеш</div>
+      <div class="combo" data-r="4"><span class="n">5</span> Стрит</div>
+      <div class="combo" data-r="3"><span class="n">6</span> Сет</div>
+      <div class="combo" data-r="2"><span class="n">7</span> Две пары</div>
+      <div class="combo" data-r="1"><span class="n">8</span> Пара</div>
+      <div class="combo" data-r="0"><span class="n">9</span> Старшая</div>
+      <p style="font-size:10px;color:rgba(255,255,255,.3);margin-top:12px;text-align:center;line-height:1.45">
+        Omaha: <b style="color:#ffe9a8">2</b> своих + <b style="color:#ffe9a8">3</b> общих<br>
+        Ничья = банк поровну<br>
+        Олл-ин → карты до конца
+      </p>
+    </aside>
+
+    <div>
+      <div class="topinfo">
+        <div>
+          <span style="opacity:.4;font-size:9px;letter-spacing:1px">КОМНАТА</span>
+          <div class="code" id="room-code">—</div>
+        </div>
+        <div class="st" id="status">Подключение...</div>
+        <div class="tm" id="timer">—</div>
+      </div>
+
+      <div class="table-outer">
+        <div class="table-inner">
+          <div class="pot-zone">
+            <div class="phase-pill" id="phase">OMAHA</div>
+            <div class="pot-val" id="pot">$0</div>
+            <div class="pot-chips" id="pot-chips"></div>
+          </div>
+          <div class="board" id="board"></div>
+          <div class="seats" id="seats"></div>
+        </div>
+      </div>
+
+      <div class="controls">
+        <div class="my-label" id="my-label">Твоя рука</div>
+        <div class="my-hand" id="my-hand"></div>
+        <div class="btns">
+          <button class="btn-pass" id="btn-pass">Пасс</button>
+          <button class="btn-check" id="btn-check">Чек</button>
+          <button class="btn-call" id="btn-call">Сравнять</button>
+          <div class="raise-wrap">
+            <input type="number" id="raise-amt" min="10" step="10" value="50" inputmode="numeric">
+            <button class="btn-raise" id="btn-raise">Повысить</button>
+          </div>
+          <button class="btn-allin" id="btn-allin">Олл-ин</button>
+          <button class="btn-ready" id="btn-ready">Готов</button>
+        </div>
+        <p class="msg" id="msg"></p>
+        <p class="hint">Ставки с баланса · олл-ин сразу добирает карты · ничья делит банк</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="winner-ov" id="winner-ov">
+  <div class="t" id="w-title">Победа!</div>
+  <div class="s" id="w-sub"></div>
+  <div class="h" id="w-hand"></div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyDV42bV1_me7JKSckA3vLvoOXmSak9YqqA",
+  authDomain: "agrarka-pokerr.firebaseapp.com",
+  databaseURL: "https://agrarka-pokerr-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "agrarka-pokerr",
+  storageBucket: "agrarka-pokerr.firebasestorage.app",
+  messagingSenderId: "622812033913",
+  appId: "1:622812033913:web:7a2122a45d712b81ae75a8"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.database();
+</script>
+<script src="common.js"></script>
+<script src="poker-multi.js"></script>
+</body>
+</html>

@@ -6253,3 +6253,77 @@ body.loss-dim {
   border: 1px solid rgba(255,255,255,0.25);
   flex-shrink: 0;
 }
+
+
+/* =========================================================
+   SITE-WIDE MOBILE polish (desktop unchanged)
+   ========================================================= */
+@media (max-width: 640px) {
+  .topbar, .topbar-pro {
+    padding: 8px 10px !important;
+    gap: 6px !important;
+    flex-wrap: wrap;
+  }
+  .topbar .logo { font-size: 15px !important; }
+  .topbar-right {
+    gap: 6px !important;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  .balance-pill, .balance-pill-pro {
+    padding: 5px 10px !important;
+  }
+  .balance-label { font-size: 9px !important; }
+  #balance-amount { font-size: 13px !important; }
+
+  /* Hero */
+  .hero h1, .hero-title {
+    font-size: clamp(22px, 7vw, 32px) !important;
+  }
+  .hero-cta-row {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+  .hero-cta, .hero-cta-ghost, .play-btn, .secondary-btn {
+    min-height: 44px !important;
+    padding: 10px 14px !important;
+    font-size: 13px !important;
+    flex: 1 1 auto;
+  }
+
+  /* Games grid */
+  .games-grid, .game-grid, #games {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 10px !important;
+  }
+  .game-card {
+    padding: 12px 10px !important;
+    border-radius: 14px !important;
+  }
+  .game-card h3, .game-card .game-title {
+    font-size: 13px !important;
+  }
+
+  /* Hide heavy live feed on mobile if present */
+  .live-feed { display: none !important; }
+
+  /* Modals / overlays */
+  .deposit-overlay .dep-modal,
+  .cabinet-modal,
+  .win-overlay .win-card {
+    max-width: 94vw !important;
+    margin: 0 auto;
+  }
+
+  /* Safe area */
+  body {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+@media (max-width: 400px) {
+  .games-grid, .game-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
