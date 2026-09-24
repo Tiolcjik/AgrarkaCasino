@@ -2863,49 +2863,94 @@ const BP_XP_LVL = 400;
 const BP_KEY = () => 'casinoBP_s' + BP_SEASON + '_' + (getSessionUser() || 'guest');
 
 const BP_AVATARS = [
-  { id: 'a1', emoji: '🌾', name: 'Аграрий' },
-  { id: 'a2', emoji: '🐸', name: 'Зелебоба' },
-  { id: 'a3', emoji: '👑', name: 'Король' },
-  { id: 'a4', emoji: '💎', name: 'Даймонд' },
-  { id: 'a5', emoji: '🚀', name: 'Потужно' },
-  { id: 'a6', emoji: '🎰', name: 'Слотер' },
-  { id: 'a7', emoji: '🔥', name: 'Огонь' },
-  { id: 'a8', emoji: '🐉', name: 'Дракон' },
-  { id: 'a9', emoji: '🃏', name: 'Дилер' },
-  { id: 'a10', emoji: '👻', name: 'Тень' },
-  { id: 'a11', emoji: '⚡', name: 'Шок' },
-  { id: 'a12', emoji: '🦈', name: 'Акула' }
+  { id: 'a1', name: 'Вайфу', tag: 'anime', img: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200&h=200&fit=crop&crop=faces' },
+  { id: 'a2', name: 'Альтушка', tag: 'alt', img: 'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=200&h=200&fit=crop&crop=faces' },
+  { id: 'a3', name: 'Неко-тян', tag: 'anime', img: 'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=200&h=200&fit=crop&crop=faces' },
+  { id: 'a4', name: 'VIP-дівчина', tag: 'glam', img: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=200&h=200&fit=crop&crop=faces' },
+  { id: 'a5', name: 'Готемка', tag: 'alt', img: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=200&h=200&fit=crop&crop=faces' },
+  { id: 'a6', name: 'Сонячна', tag: 'cute', img: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&h=200&fit=crop&crop=faces' },
+  { id: 'a7', name: 'Кібер-тян', tag: 'anime', img: 'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=200&h=200&fit=crop&crop=face' },
+  { id: 'a8', name: 'Леді Джекпот', tag: 'glam', img: 'https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?w=200&h=200&fit=crop&crop=faces' },
+  { id: 'a9', name: 'Мілашка', tag: 'cute', img: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&h=200&fit=crop&crop=faces' },
+  { id: 'a10', name: 'Дарк-квін', tag: 'alt', img: 'https://images.unsplash.com/photo-1502823403499-6ccfcf4fb453?w=200&h=200&fit=crop&crop=faces' },
+  { id: 'a11', name: 'Пінк-вайфу', tag: 'anime', img: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=200&h=200&fit=crop&crop=faces' },
+  { id: 'a12', name: 'Ікона сезону', tag: 'glam', img: 'https://images.unsplash.com/photo-1524638431109-93d95c858f73?w=200&h=200&fit=crop&crop=faces' }
 ];
+// Nick styles: solid matte, soft matte, gradient, chrome, neon glow
 const BP_COLORS = [
-  { id: 'c1', hex: '#ffe08a', name: 'Золото' },
-  { id: 'c2', hex: '#ff2e9a', name: 'Магента' },
-  { id: 'c3', hex: '#00e5ff', name: 'Неон' },
-  { id: 'c4', hex: '#00ff88', name: 'Эмеральд' },
-  { id: 'c5', hex: '#8a5cff', name: 'Фиолет' },
-  { id: 'c6', hex: '#ff6b35', name: 'Огонь' },
-  { id: 'c7', hex: '#ffffff', name: 'Платина' },
-  { id: 'c8', hex: '#ffd700', name: 'Легенда' }
+  { id: 'c1', name: 'Матове золото', type: 'matte', css: '#c9a227' },
+  { id: 'c2', name: 'Матова магента', type: 'matte', css: '#c4186a' },
+  { id: 'c3', name: 'Неон-градієнт', type: 'gradient', css: 'linear-gradient(90deg,#00e5ff,#ff2e9a,#ffe08a)' },
+  { id: 'c4', name: 'Изумруд мат', type: 'matte', css: '#0a8f5c' },
+  { id: 'c5', name: 'Фіолет-градієнт', type: 'gradient', css: 'linear-gradient(90deg,#8a5cff,#ff2e9a)' },
+  { id: 'c6', name: 'Вогняний градієнт', type: 'gradient', css: 'linear-gradient(90deg,#ff6b35,#ffe08a,#ff2e9a)' },
+  { id: 'c7', name: 'Платина мат', type: 'matte', css: '#c8cdd8' },
+  { id: 'c8', name: 'Легенда хром', type: 'gradient', css: 'linear-gradient(90deg,#fff,#ffe08a,#d4af37,#fff)' },
+  { id: 'c9', name: 'Укр-градієнт', type: 'gradient', css: 'linear-gradient(90deg,#0057b7,#ffd700)' },
+  { id: 'c10', name: 'Рожевий шовк', type: 'gradient', css: 'linear-gradient(90deg,#ff9a9e,#fecfef,#ffc3a0)' }
+];
+const BP_TITLES_POOL = [
+  'Потужний лох',
+  'Зелебоба схвалює',
+  'Бусік чекає',
+  'Я піздатий',
+  'Слот-дівчинка',
+  'Цілую дилера',
+  'Королева столу',
+  'Не чіпай мій банк',
+  'Вайфу удачі',
+  'Альтушка на мінімалках',
+  'Хозяйка залу',
+  'Перемога або дім',
+  'Тян моєї мрії',
+  'Краш казино',
+  'ЛЕГЕНДА СЕЗОНУ'
 ];
 
 function bpReward(level) {
   // free + premium tracks
   const free = [];
   const prem = [];
-  if (level % 3 === 0) free.push({ type: 'coins', amount: 50 + level * 10 });
-  if (level % 5 === 0) free.push({ type: 'avatar', id: BP_AVATARS[Math.min(11, Math.floor(level / 3)) % 12].id });
-  if (level % 4 === 0) prem.push({ type: 'coins', amount: 120 + level * 25 });
-  if (level % 6 === 0) prem.push({ type: 'color', id: BP_COLORS[Math.min(7, Math.floor(level / 4)) % 8].id });
-  if (level === 10) prem.push({ type: 'title', text: 'Хищник зала' });
-  if (level === 20) prem.push({ type: 'title', text: 'Потужный' });
+  if (level % 3 === 0) free.push({ type: 'coins', amount: 80 + level * 15 });
+  if (level % 4 === 0) free.push({ type: 'avatar', id: BP_AVATARS[Math.min(11, Math.floor(level / 2.5)) % 12].id });
+  if (level % 3 === 0) prem.push({ type: 'coins', amount: 150 + level * 30 });
+  if (level % 5 === 0) prem.push({ type: 'color', id: BP_COLORS[Math.min(9, Math.floor(level / 3)) % 10].id });
+  if (level % 7 === 0) prem.push({ type: 'avatar', id: BP_AVATARS[Math.min(11, Math.floor(level / 2)) % 12].id });
+  if (level === 5) free.push({ type: 'title', text: BP_TITLES_POOL[0] });
+  if (level === 8) prem.push({ type: 'title', text: BP_TITLES_POOL[1] });
+  if (level === 10) prem.push({ type: 'title', text: BP_TITLES_POOL[3] });
+  if (level === 12) free.push({ type: 'title', text: BP_TITLES_POOL[4] });
+  if (level === 14) prem.push({ type: 'color', id: 'c9' });
+  if (level === 15) prem.push({ type: 'title', text: BP_TITLES_POOL[6] });
+  if (level === 18) free.push({ type: 'title', text: BP_TITLES_POOL[2] });
+  if (level === 20) prem.push({ type: 'title', text: BP_TITLES_POOL[8] });
+  if (level === 22) prem.push({ type: 'color', id: 'c10' });
+  if (level === 24) prem.push({ type: 'title', text: BP_TITLES_POOL[10] });
+  if (level === 27) free.push({ type: 'title', text: BP_TITLES_POOL[11] });
   if (level === 30) {
     free.push({ type: 'coins', amount: 2000 });
     prem.push({ type: 'avatar', id: 'a12' });
     prem.push({ type: 'color', id: 'c8' });
-    prem.push({ type: 'title', text: 'ЛЕГЕНДА СЕЗОНА' });
+    prem.push({ type: 'title', text: BP_TITLES_POOL[14] });
   }
   if (!free.length) free.push({ type: 'xp', amount: 50 });
   if (!prem.length) prem.push({ type: 'coins', amount: 80 + level * 5 });
   return { free, prem };
+}
+
+
+function nickStyleFor(colorId) {
+  const c = BP_COLORS.find(x => x.id === colorId) || BP_COLORS[0];
+  if (c.type === 'gradient') {
+    return `background:${c.css};-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 8px rgba(255,224,138,0.25))`;
+  }
+  // matte
+  return `color:${c.css};text-shadow:none;opacity:0.95`;
+}
+function avatarHtml(av, cls) {
+  if (!av) return '';
+  if (av.img) return `<img class="${cls||'bp-av-img'}" src="${av.img}" alt="${av.name}" loading="lazy" onerror="this.style.display='none';this.nextSibling&&(this.nextSibling.style.display='flex')"/><span class="bp-av-fallback" style="display:none">👤</span>`;
+  return `<span class="bp-av-fallback">👤</span>`;
 }
 
 function loadBP() {
@@ -2964,8 +3009,8 @@ function renderBattlePassTab(box) {
     const unlocked = lvl >= i;
     const cf = d.claimedFree[i];
     const cp = d.claimedPrem[i];
-    const freeLabel = rw.free.map(r => r.type === 'coins' ? ('$' + r.amount) : r.type === 'avatar' ? '👤' : r.type === 'title' ? '🏷' : '✨').join(' ');
-    const premLabel = rw.prem.map(r => r.type === 'coins' ? ('$' + r.amount) : r.type === 'avatar' ? '👤' : r.type === 'color' ? '🎨' : r.type === 'title' ? '🏷' : '✨').join(' ');
+    const freeLabel = rw.free.map(r => r.type === 'coins' ? ('$' + r.amount) : r.type === 'avatar' ? '🖼 тян' : r.type === 'title' ? '🏷' : '✨').join(' ');
+    const premLabel = rw.prem.map(r => r.type === 'coins' ? ('$' + r.amount) : r.type === 'avatar' ? '🖼 тян' : r.type === 'color' ? '🎨 ник' : r.type === 'title' ? '🏷' : '✨').join(' ');
     levelsHtml += `<div class="bp-level ${unlocked ? 'on' : 'off'}">
       <div class="bp-lv-num">${i}</div>
       <div class="bp-track free">
@@ -3042,20 +3087,20 @@ function renderProfileTab(box) {
   const col = prof.color || 'c1';
   const title = prof.title || '';
   const avHtml = BP_AVATARS.filter(a => bp.unlockedAvatars.includes(a.id)).map(a =>
-    `<button class="prof-av ${av===a.id?'sel':''}" data-av="${a.id}" title="${a.name}">${a.emoji}</button>`
+    `<button class="prof-av ${av===a.id?'sel':''}" data-av="${a.id}" title="${a.name}"><img src="${a.img}" alt="${a.name}" loading="lazy"/><span class="prof-av-tag">${a.tag||''}</span></button>`
   ).join('');
   const colHtml = BP_COLORS.filter(c => bp.unlockedColors.includes(c.id)).map(c =>
-    `<button class="prof-col ${col===c.id?'sel':''}" data-col="${c.id}" style="background:${c.hex}" title="${c.name}"></button>`
+    `<button class="prof-col ${col===c.id?'sel':''}" data-col="${c.id}" style="background:${c.css}" title="${c.name}"></button>`
   ).join('');
   const titles = (bp.titles || []).map(t =>
     `<button class="prof-title-btn ${title===t?'sel':''}" data-title="${t}">${t}</button>`
   ).join('') || '<span style="color:var(--text-dimmer);font-size:12px;">Открывай титулы в сезоне</span>';
-  const emoji = (BP_AVATARS.find(a => a.id === av) || BP_AVATARS[0]).emoji;
-  const hex = (BP_COLORS.find(c => c.id === col) || BP_COLORS[0]).hex;
+  const avObj = BP_AVATARS.find(a => a.id === av) || BP_AVATARS[0];
+  const nickCss = nickStyleFor(col);
   box.innerHTML = `
     <div class="prof-preview">
-      <div class="prof-avatar-big">${emoji}</div>
-      <div class="prof-nick" style="color:${hex}">${(currentAccount() && currentAccount().name) || getSessionUser() || 'Игрок'}</div>
+      <div class="prof-avatar-big"><img src="${avObj.img}" alt="${avObj.name}"/></div>
+      <div class="prof-nick" style="${nickCss}">${(currentAccount() && currentAccount().name) || getSessionUser() || 'Игрок'}</div>
       <div class="prof-title-line">${title || 'Без титула'}</div>
     </div>
     <p class="bp-hint">Аватарки и цвета ника открываются в боевом пропуске.</p>
@@ -3080,7 +3125,7 @@ function renderProfileTab(box) {
 function applyProfileChrome() {
   const prof = loadProfile();
   const av = BP_AVATARS.find(a => a.id === (prof.avatar || 'a1')) || BP_AVATARS[0];
-  const col = BP_COLORS.find(c => c.id === (prof.color || 'c1')) || BP_COLORS[0];
+  const nickCss = nickStyleFor(prof.color || 'c1');
   let chip = document.getElementById('profile-chip');
   if (!chip) {
     const logo = document.querySelector('.topbar .logo');
@@ -3090,7 +3135,7 @@ function applyProfileChrome() {
     chip.className = 'profile-chip';
     logo.parentNode.insertBefore(chip, logo.nextSibling);
   }
-  chip.innerHTML = `<span class="pc-av">${av.emoji}</span><span class="pc-nick" style="color:${col.hex}">${(currentAccount() && currentAccount().name) || getSessionUser() || ''}</span>`;
+  chip.innerHTML = `<span class="pc-av"><img src="${av.img}" alt=""/></span><span class="pc-nick" style="${nickCss}">${(currentAccount() && currentAccount().name) || getSessionUser() || ''}</span>`;
   if (prof.title) chip.title = prof.title;
 }
 
