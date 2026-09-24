@@ -57,8 +57,14 @@ let currentBet = 50;
 let turbo = false;
 let autoplayRemaining = 0;
 let spinning = false;
-let jackpot = 18420 + Math.floor(Math.random() * 300);
+// Progressive jackpot seed (scales with current bet)
+let jackpotSeed = 18420 + Math.floor(Math.random() * 300);
+const JP_BASE_BET = 50; // seed is calibrated for $50 bets
 
+function getDisplayedJackpot() {
+  const scale = Math.max(0.2, (currentBet || JP_BASE_BET) / JP_BASE_BET);
+  return Math.floor(jackpotSeed * scale);
+}
 
 // ---- Recent results strip ----
 function ensureSlotsHistory() {
@@ -96,10 +102,10 @@ const strips = [
 ];
 
 function renderJackpot() {
-  jackpotEl.textContent = fmtMoney(jackpot);
+  if (jackpotEl) jackpotEl.textContent = fmtMoney(getDisplayedJackpot());
 }
 renderJackpot();
-setInterval(() => { jackpot += Math.floor(Math.random() * 8) + 1; renderJackpot(); }, 2200);
+setInterval(() => { jackpotSeed += Math.floor(Math.random() * 8) + 1; renderJackpot(); }, 2200);
 
 function weightedSymbol() {
   const pool = THEMES[currentTheme].pool;
@@ -137,9 +143,11 @@ document.querySelectorAll('#chip-row .chip').forEach((chip) => {
     chip.classList.add('active');
     currentBet = parseInt(chip.dataset.bet);
     document.getElementById('current-bet').textContent = fmtMoney(currentBet);
+    try { renderJackpot(); } catch(e) {}
   });
 });
 document.getElementById('current-bet').textContent = fmtMoney(currentBet);
+try { renderJackpot(); } catch(e) {}
 
 // ---------- Turbo / Autoplay toggles ----------
 turboBtn.addEventListener('click', () => {
@@ -260,7 +268,21 @@ function doSpin() {
   try { SFX.spin(); } catch(e) {}
   spinBtn.disabled = true;
   slotMessage.textContent = '';
+  // Insurance: 10% of bet → 50% refund on loss
+  if (typeof window.CasinoInsurance !== 'undefined' && window.CasinoInsurance.isOn()) {
+    const ic = window.CasinoInsurance.costFor(currentBet);
+    if (balance >= currentBet + ic) {
+      updateBalance(-ic);
+      window.CasinoInsurance.markPending(currentBet);
+    } else {
+      window.CasinoInsurance.clearPending();
+    }
+  } else if (window.CasinoInsurance) {
+    window.CasinoInsurance.clearPending();
+  }
   updateBalance(-currentBet);
+  try { if (typeof window.pushRoundHistory === 'function') window.pushRoundHistory({ game:'slots', bet: currentBet, ts: Date.now() }); } catch(e) {}
+  try { if (typeof window.addBattlePassXP === 'function') window.addBattlePassXP(Math.max(1, Math.floor(currentBet / 50))); } catch(e) {}
 
   if (Math.random() < 0.35) showRandomFlavor();
 
@@ -280,28 +302,43 @@ function doSpin() {
     const { mult, type } = calcPayout(result);
 
     if (megaJackpot) {
-      const win = jackpot;
+      const win = getDisplayedJackpot();
       updateBalance(win);
       try { pushSlotsHistory('JP', true); } catch(e) {}
       showWinOverlay('МЕГА ДЖЕКПОТ! 💎', `Сорван банк — +${fmtMoney(win)}`);
       try { if (typeof celebrateJackpot === 'function') celebrateJackpot('Пидор ты Джекпот поймал'); } catch(e) {}
-      jackpot = 5000 + Math.floor(Math.random() * 500);
+      jackpotSeed = 5000 + Math.floor(Math.random() * 500);
       renderJackpot();
     } else if (mult > 0) {
       const win = currentBet * mult;
       updateBalance(win);
+      try { if (window.CasinoInsurance) window.CasinoInsurance.clearPending(); } catch(e) {}
       if (type === 'triple') {
         try { pushSlotsHistory(mult, true); } catch(e) {}
         showWinOverlay('ТРОЙКА! 🎰', `+${fmtMoney(win)} (×${mult})`);
         try { if (typeof celebrateJackpot === 'function') celebrateJackpot('Пидор ты Джекпот поймал'); } catch(e) {}
+        try { if (typeof window.recordBigWinReplay === 'function') window.recordBigWinReplay({ game:'slots', title:'ТРОЙКА', amount: win, mult }); } catch(e) {}
       } else {
         try { pushSlotsHistory(mult, true); } catch(e) {}
         slotMessage.textContent = `🎉 Комбинация! +${fmtMoney(win)} (×${mult})`;
+        if (win >= 300) {
+          try { if (typeof window.recordBigWinReplay === 'function') window.recordBigWinReplay({ game:'slots', title:'Выигрыш', amount: win, mult }); } catch(e) {}
+        }
       }
     } else {
       try { pushSlotsHistory(0, false); } catch(e) {}
       try { SFX.lose(); } catch(e) {}
-      slotMessage.textContent = 'Не повезло, попробуй ещё раз';
+      let msg = 'Не повезло, попробуй ещё раз';
+      try {
+        if (typeof window.CasinoInsurance !== 'undefined') {
+          const ref = window.CasinoInsurance.consumeRefund();
+          if (ref > 0) {
+            updateBalance(ref);
+            msg = 'Не повезло · страховка вернула +' + fmtMoney(ref);
+          }
+        }
+      } catch(e) {}
+      slotMessage.textContent = msg;
     }
 
     spinning = false;
@@ -343,7 +380,7 @@ strips.forEach((s) => {
     const el = document.getElementById('current-bet');
     if (el) el.textContent = fmtMoney(currentBet);
     document.querySelectorAll('#chip-row .chip, .chip-row .chip').forEach(c => c.classList.remove('active'));
-    
+    try { renderJackpot(); } catch(e) {}
   });
   input.addEventListener('keydown', (e) => { if (e.key === 'Enter') btn.click(); });
 })();

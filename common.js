@@ -1562,10 +1562,13 @@ function openCabinet() {
         <button class="auth-close" id="cab-close">✕</button>
         <h3>👤 Личный кабинет</h3>
         <div class="cab-tabs">
-          <button class="cab-tab active" data-tab="stats">📊 Статистика</button>
-          <button class="cab-tab" data-tab="tx">📜 История</button>
+          <button class="cab-tab active" data-tab="stats">📊 Стата</button>
+          <button class="cab-tab" data-tab="rounds">🎲 Раунды</button>
+          <button class="cab-tab" data-tab="bp">⚔️ Сезон</button>
+          <button class="cab-tab" data-tab="profile">🎨 Профиль</button>
           <button class="cab-tab" data-tab="missions">🎯 Миссии</button>
-          <button class="cab-tab" data-tab="promo">🏷 Промокод</button>
+          <button class="cab-tab" data-tab="tx">📜 TX</button>
+          <button class="cab-tab" data-tab="promo">🏷 Промо</button>
         </div>
         <div id="cab-content"></div>
       </div>
@@ -1588,6 +1591,9 @@ function openCabinet() {
 function renderCabinetTab(tab) {
   const box = document.getElementById('cab-content');
   if (!box) return;
+  if (tab === 'bp') { renderBattlePassTab(box); return; }
+  if (tab === 'profile') { renderProfileTab(box); return; }
+  if (tab === 'rounds') { renderRoundsTab(box); return; }
   if (tab === 'stats') {
     const rounds = parseInt(localStorage.getItem('casinoRounds') || '0');
     const st = (typeof loadStats === 'function') ? loadStats() : { deposited:0, won:0, lost:0, winCount:0, lossCount:0, biggestWin:0, games:{} };
@@ -2761,4 +2767,425 @@ function initSessionHud() {
 }
 document.addEventListener('DOMContentLoaded', () => {
   try { initSessionHud(); } catch (e) {}
+});
+
+
+/* =========================================================
+   FEATURE PACK — Insurance, Battle Pass, Replay, Hotkeys,
+   Round History, Profile (avatar + nick color)
+   ========================================================= */
+
+// ----- Round History -----
+const ROUND_KEY = () => 'casinoRoundsLog_' + (getSessionUser() || 'guest');
+function getRoundHistory() {
+  try { return JSON.parse(localStorage.getItem(ROUND_KEY()) || '[]'); } catch { return []; }
+}
+function pushRoundHistory(entry) {
+  const list = getRoundHistory();
+  list.unshift({
+    game: entry.game || currentGameId(),
+    bet: entry.bet || 0,
+    win: entry.win || 0,
+    mult: entry.mult || 0,
+    ts: entry.ts || Date.now()
+  });
+  if (list.length > 80) list.length = 80;
+  localStorage.setItem(ROUND_KEY(), JSON.stringify(list));
+}
+window.pushRoundHistory = pushRoundHistory;
+
+function renderRoundsTab(box) {
+  const list = getRoundHistory();
+  if (!list.length) {
+    box.innerHTML = '<p style="color:var(--text-dim);text-align:center;padding:20px 0;">Пока нет раундов — сыграй!</p>';
+    return;
+  }
+  const labels = (typeof GAME_LABELS !== 'undefined') ? GAME_LABELS : {};
+  box.innerHTML = '<div class="tx-list">' + list.slice(0, 40).map(r => {
+    const name = labels[r.game] || r.game || '—';
+    const date = new Date(r.ts).toLocaleString('ru-RU', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
+    const win = r.win || 0;
+    const col = win > 0 ? 'var(--green)' : 'var(--text-dimmer)';
+    const mult = r.mult ? (' ×' + r.mult) : '';
+    return `<div class="tx-row">
+      <span class="tx-type">${name}</span>
+      <span class="tx-meta">ставка ${fmtMoney(r.bet||0)}${mult}</span>
+      <span class="tx-amt" style="color:${col}">${win>0?'+':''}${fmtMoney(win)}</span>
+      <span class="tx-date">${date}</span>
+    </div>`;
+  }).join('') + '</div>';
+}
+
+// ----- Insurance -----
+const INS_KEY = () => 'casinoInsure_' + (getSessionUser() || 'guest');
+window.CasinoInsurance = {
+  isOn() { return localStorage.getItem(INS_KEY()) === '1'; },
+  setOn(v) { localStorage.setItem(INS_KEY(), v ? '1' : '0'); },
+  costFor(bet) { return Math.max(1, Math.floor(bet * 0.1)); },
+  _pending: 0,
+  markPending(bet) { this._pending = Math.floor(bet * 0.5); },
+  clearPending() { this._pending = 0; },
+  consumeRefund() {
+    const v = this._pending || 0;
+    this._pending = 0;
+    return v;
+  }
+};
+
+function initInsuranceToggle() {
+  if (document.getElementById('insure-toggle')) return;
+  const top = document.querySelector('.topbar-right');
+  if (!top) return;
+  const btn = document.createElement('button');
+  btn.id = 'insure-toggle';
+  btn.className = 'icon-tool-btn insure-btn';
+  btn.title = 'Страховка ставки: 10% от ставки → 50% возврат при проигрыше';
+  const sync = () => {
+    const on = window.CasinoInsurance.isOn();
+    btn.textContent = on ? '🛡️ ON' : '🛡️';
+    btn.classList.toggle('active', on);
+  };
+  sync();
+  btn.addEventListener('click', () => {
+    window.CasinoInsurance.setOn(!window.CasinoInsurance.isOn());
+    sync();
+    showToast(window.CasinoInsurance.isOn()
+      ? '🛡️ Страховка ВКЛ · 10% ставки → 50% назад при проигрыше'
+      : 'Страховка выкл');
+  });
+  top.insertBefore(btn, top.firstChild);
+}
+
+// ----- Battle Pass -----
+const BP_SEASON = 1;
+const BP_MAX = 30;
+const BP_XP_LVL = 400;
+const BP_KEY = () => 'casinoBP_s' + BP_SEASON + '_' + (getSessionUser() || 'guest');
+
+const BP_AVATARS = [
+  { id: 'a1', emoji: '🌾', name: 'Аграрий' },
+  { id: 'a2', emoji: '🐸', name: 'Зелебоба' },
+  { id: 'a3', emoji: '👑', name: 'Король' },
+  { id: 'a4', emoji: '💎', name: 'Даймонд' },
+  { id: 'a5', emoji: '🚀', name: 'Потужно' },
+  { id: 'a6', emoji: '🎰', name: 'Слотер' },
+  { id: 'a7', emoji: '🔥', name: 'Огонь' },
+  { id: 'a8', emoji: '🐉', name: 'Дракон' },
+  { id: 'a9', emoji: '🃏', name: 'Дилер' },
+  { id: 'a10', emoji: '👻', name: 'Тень' },
+  { id: 'a11', emoji: '⚡', name: 'Шок' },
+  { id: 'a12', emoji: '🦈', name: 'Акула' }
+];
+const BP_COLORS = [
+  { id: 'c1', hex: '#ffe08a', name: 'Золото' },
+  { id: 'c2', hex: '#ff2e9a', name: 'Магента' },
+  { id: 'c3', hex: '#00e5ff', name: 'Неон' },
+  { id: 'c4', hex: '#00ff88', name: 'Эмеральд' },
+  { id: 'c5', hex: '#8a5cff', name: 'Фиолет' },
+  { id: 'c6', hex: '#ff6b35', name: 'Огонь' },
+  { id: 'c7', hex: '#ffffff', name: 'Платина' },
+  { id: 'c8', hex: '#ffd700', name: 'Легенда' }
+];
+
+function bpReward(level) {
+  // free + premium tracks
+  const free = [];
+  const prem = [];
+  if (level % 3 === 0) free.push({ type: 'coins', amount: 50 + level * 10 });
+  if (level % 5 === 0) free.push({ type: 'avatar', id: BP_AVATARS[Math.min(11, Math.floor(level / 3)) % 12].id });
+  if (level % 4 === 0) prem.push({ type: 'coins', amount: 120 + level * 25 });
+  if (level % 6 === 0) prem.push({ type: 'color', id: BP_COLORS[Math.min(7, Math.floor(level / 4)) % 8].id });
+  if (level === 10) prem.push({ type: 'title', text: 'Хищник зала' });
+  if (level === 20) prem.push({ type: 'title', text: 'Потужный' });
+  if (level === 30) {
+    free.push({ type: 'coins', amount: 2000 });
+    prem.push({ type: 'avatar', id: 'a12' });
+    prem.push({ type: 'color', id: 'c8' });
+    prem.push({ type: 'title', text: 'ЛЕГЕНДА СЕЗОНА' });
+  }
+  if (!free.length) free.push({ type: 'xp', amount: 50 });
+  if (!prem.length) prem.push({ type: 'coins', amount: 80 + level * 5 });
+  return { free, prem };
+}
+
+function loadBP() {
+  try {
+    const d = JSON.parse(localStorage.getItem(BP_KEY()) || '{}');
+    return {
+      xp: d.xp || 0,
+      claimedFree: d.claimedFree || {},
+      claimedPrem: d.claimedPrem || {},
+      premium: !!d.premium,
+      unlockedAvatars: d.unlockedAvatars || ['a1'],
+      unlockedColors: d.unlockedColors || ['c1'],
+      titles: d.titles || []
+    };
+  } catch { return { xp:0, claimedFree:{}, claimedPrem:{}, premium:false, unlockedAvatars:['a1'], unlockedColors:['c1'], titles:[] }; }
+}
+function saveBP(d) { localStorage.setItem(BP_KEY(), JSON.stringify(d)); }
+function bpLevel(xp) { return Math.min(BP_MAX, Math.floor(xp / BP_XP_LVL) + 1); }
+function bpXpInto(xp) { return xp % BP_XP_LVL; }
+
+function addBattlePassXP(amount) {
+  amount = Math.max(0, Math.floor(amount || 0));
+  if (!amount) return;
+  const d = loadBP();
+  const before = bpLevel(d.xp);
+  d.xp += amount;
+  const after = bpLevel(d.xp);
+  saveBP(d);
+  if (after > before) {
+    showToast('⚔️ Сезон: уровень ' + after + '!');
+  }
+}
+window.addBattlePassXP = addBattlePassXP;
+
+function applyBPReward(reward, d) {
+  if (reward.type === 'coins') {
+    updateBalance(reward.amount);
+    pushTx('bonus', reward.amount, 'bp-reward');
+  } else if (reward.type === 'avatar' && reward.id) {
+    if (!d.unlockedAvatars.includes(reward.id)) d.unlockedAvatars.push(reward.id);
+  } else if (reward.type === 'color' && reward.id) {
+    if (!d.unlockedColors.includes(reward.id)) d.unlockedColors.push(reward.id);
+  } else if (reward.type === 'title' && reward.text) {
+    if (!d.titles.includes(reward.text)) d.titles.push(reward.text);
+  }
+}
+
+function renderBattlePassTab(box) {
+  const d = loadBP();
+  const lvl = bpLevel(d.xp);
+  const into = bpXpInto(d.xp);
+  const pct = Math.round(into / BP_XP_LVL * 100);
+  let levelsHtml = '';
+  for (let i = 1; i <= BP_MAX; i++) {
+    const rw = bpReward(i);
+    const unlocked = lvl >= i;
+    const cf = d.claimedFree[i];
+    const cp = d.claimedPrem[i];
+    const freeLabel = rw.free.map(r => r.type === 'coins' ? ('$' + r.amount) : r.type === 'avatar' ? '👤' : r.type === 'title' ? '🏷' : '✨').join(' ');
+    const premLabel = rw.prem.map(r => r.type === 'coins' ? ('$' + r.amount) : r.type === 'avatar' ? '👤' : r.type === 'color' ? '🎨' : r.type === 'title' ? '🏷' : '✨').join(' ');
+    levelsHtml += `<div class="bp-level ${unlocked ? 'on' : 'off'}">
+      <div class="bp-lv-num">${i}</div>
+      <div class="bp-track free">
+        <span>${freeLabel}</span>
+        ${unlocked && !cf ? `<button class="primary-btn mini" data-bp-free="${i}">Забрать</button>` : (cf ? '✓' : '🔒')}
+      </div>
+      <div class="bp-track prem">
+        <span>${premLabel}</span>
+        ${d.premium && unlocked && !cp ? `<button class="primary-btn mini" data-bp-prem="${i}">Забрать</button>` : (cp ? '✓' : (d.premium ? '🔒' : '👑'))}
+      </div>
+    </div>`;
+  }
+  box.innerHTML = `
+    <div class="bp-head">
+      <div>
+        <strong>Сезон ${BP_SEASON} · Потужний Пропуск</strong>
+        <div class="bp-lvl">Уровень <b>${lvl}</b> / ${BP_MAX}</div>
+      </div>
+      ${d.premium ? '<span class="bp-badge">PREMIUM</span>' : `<button class="primary-btn mini" id="bp-buy-prem">Купить Premium · $2,500</button>`}
+    </div>
+    <div class="bp-bar"><div style="width:${pct}%"></div></div>
+    <div class="bp-xp">${into} / ${BP_XP_LVL} XP · всего ${d.xp} XP</div>
+    <p class="bp-hint">XP за ставки и выигрыши. Premium — второй трек наград, цвета ника и редкие аватарки.</p>
+    <div class="bp-levels">${levelsHtml}</div>
+  `;
+  box.querySelector('#bp-buy-prem')?.addEventListener('click', () => {
+    if (balance < 2500) { showToast('Недостаточно средств'); return; }
+    updateBalance(-2500);
+    const data = loadBP();
+    data.premium = true;
+    saveBP(data);
+    showToast('👑 Premium сезон активирован!');
+    renderBattlePassTab(box);
+  });
+  box.querySelectorAll('[data-bp-free]').forEach(btn => {
+    btn.onclick = () => {
+      const i = +btn.dataset.bpFree;
+      const data = loadBP();
+      if (data.claimedFree[i] || bpLevel(data.xp) < i) return;
+      bpReward(i).free.forEach(r => applyBPReward(r, data));
+      data.claimedFree[i] = true;
+      saveBP(data);
+      showToast('🎁 Награда сезона получена');
+      renderBattlePassTab(box);
+    };
+  });
+  box.querySelectorAll('[data-bp-prem]').forEach(btn => {
+    btn.onclick = () => {
+      const i = +btn.dataset.bpPrem;
+      const data = loadBP();
+      if (!data.premium || data.claimedPrem[i] || bpLevel(data.xp) < i) return;
+      bpReward(i).prem.forEach(r => applyBPReward(r, data));
+      data.claimedPrem[i] = true;
+      saveBP(data);
+      showToast('👑 Premium-награда!');
+      renderBattlePassTab(box);
+    };
+  });
+}
+
+// ----- Profile (avatar + nick color + title) -----
+const PROF_KEY = () => 'casinoProfile_' + (getSessionUser() || 'guest');
+function loadProfile() {
+  try {
+    return JSON.parse(localStorage.getItem(PROF_KEY()) || '{}');
+  } catch { return {}; }
+}
+function saveProfile(p) { localStorage.setItem(PROF_KEY(), JSON.stringify(p)); }
+
+function renderProfileTab(box) {
+  const bp = loadBP();
+  const prof = loadProfile();
+  const av = prof.avatar || 'a1';
+  const col = prof.color || 'c1';
+  const title = prof.title || '';
+  const avHtml = BP_AVATARS.filter(a => bp.unlockedAvatars.includes(a.id)).map(a =>
+    `<button class="prof-av ${av===a.id?'sel':''}" data-av="${a.id}" title="${a.name}">${a.emoji}</button>`
+  ).join('');
+  const colHtml = BP_COLORS.filter(c => bp.unlockedColors.includes(c.id)).map(c =>
+    `<button class="prof-col ${col===c.id?'sel':''}" data-col="${c.id}" style="background:${c.hex}" title="${c.name}"></button>`
+  ).join('');
+  const titles = (bp.titles || []).map(t =>
+    `<button class="prof-title-btn ${title===t?'sel':''}" data-title="${t}">${t}</button>`
+  ).join('') || '<span style="color:var(--text-dimmer);font-size:12px;">Открывай титулы в сезоне</span>';
+  const emoji = (BP_AVATARS.find(a => a.id === av) || BP_AVATARS[0]).emoji;
+  const hex = (BP_COLORS.find(c => c.id === col) || BP_COLORS[0]).hex;
+  box.innerHTML = `
+    <div class="prof-preview">
+      <div class="prof-avatar-big">${emoji}</div>
+      <div class="prof-nick" style="color:${hex}">${(currentAccount() && currentAccount().name) || getSessionUser() || 'Игрок'}</div>
+      <div class="prof-title-line">${title || 'Без титула'}</div>
+    </div>
+    <p class="bp-hint">Аватарки и цвета ника открываются в боевом пропуске.</p>
+    <h4>Аватар</h4>
+    <div class="prof-grid">${avHtml}</div>
+    <h4>Цвет ника</h4>
+    <div class="prof-grid">${colHtml}</div>
+    <h4>Титул</h4>
+    <div class="prof-titles">${titles}</div>
+  `;
+  box.querySelectorAll('[data-av]').forEach(b => b.onclick = () => {
+    const p = loadProfile(); p.avatar = b.dataset.av; saveProfile(p); renderProfileTab(box); applyProfileChrome();
+  });
+  box.querySelectorAll('[data-col]').forEach(b => b.onclick = () => {
+    const p = loadProfile(); p.color = b.dataset.col; saveProfile(p); renderProfileTab(box); applyProfileChrome();
+  });
+  box.querySelectorAll('[data-title]').forEach(b => b.onclick = () => {
+    const p = loadProfile(); p.title = b.dataset.title; saveProfile(p); renderProfileTab(box); applyProfileChrome();
+  });
+}
+
+function applyProfileChrome() {
+  const prof = loadProfile();
+  const av = BP_AVATARS.find(a => a.id === (prof.avatar || 'a1')) || BP_AVATARS[0];
+  const col = BP_COLORS.find(c => c.id === (prof.color || 'c1')) || BP_COLORS[0];
+  let chip = document.getElementById('profile-chip');
+  if (!chip) {
+    const logo = document.querySelector('.topbar .logo');
+    if (!logo) return;
+    chip = document.createElement('span');
+    chip.id = 'profile-chip';
+    chip.className = 'profile-chip';
+    logo.parentNode.insertBefore(chip, logo.nextSibling);
+  }
+  chip.innerHTML = `<span class="pc-av">${av.emoji}</span><span class="pc-nick" style="color:${col.hex}">${(currentAccount() && currentAccount().name) || getSessionUser() || ''}</span>`;
+  if (prof.title) chip.title = prof.title;
+}
+
+// ----- Big win replay -----
+const REPLAY_KEY = () => 'casinoLastBigWin_' + (getSessionUser() || 'guest');
+function recordBigWinReplay(data) {
+  if (!data || !data.amount || data.amount < 200) return;
+  localStorage.setItem(REPLAY_KEY(), JSON.stringify({ ...data, ts: Date.now() }));
+}
+window.recordBigWinReplay = recordBigWinReplay;
+
+function playBigWinReplay() {
+  let data;
+  try { data = JSON.parse(localStorage.getItem(REPLAY_KEY()) || 'null'); } catch { data = null; }
+  if (!data) { showToast('Пока нет большого выигрыша для повтора'); return; }
+  const labels = (typeof GAME_LABELS !== 'undefined') ? GAME_LABELS : {};
+  const g = labels[data.game] || data.game || 'Игра';
+  showWinOverlay(data.title || 'Replay', `${g} · +${fmtMoney(data.amount)}${data.mult ? ' (×'+data.mult+')' : ''}`);
+  try { moneyRain(36); } catch(e) {}
+  try { screenShake(8); } catch(e) {}
+  try { burstConfetti(28); } catch(e) {}
+  try { SFX.bigWin && SFX.bigWin(); } catch(e) {}
+}
+
+function initReplayButton() {
+  if (document.getElementById('replay-btn')) return;
+  const top = document.querySelector('.topbar-right');
+  if (!top) return;
+  const btn = document.createElement('button');
+  btn.id = 'replay-btn';
+  btn.className = 'icon-tool-btn';
+  btn.title = 'Повтор последнего большого выигрыша';
+  btn.textContent = '🎬';
+  btn.addEventListener('click', playBigWinReplay);
+  top.insertBefore(btn, top.firstChild);
+}
+
+// ----- Hotkeys -----
+function initHotkeys() {
+  if (window.__hotkeysOn) return;
+  window.__hotkeysOn = true;
+  document.addEventListener('keydown', (e) => {
+    const tag = (e.target && e.target.tagName) || '';
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || e.target.isContentEditable) return;
+    if (e.code === 'Escape') {
+      document.querySelectorAll('.modal-overlay.open').forEach(m => m.classList.remove('open'));
+      document.getElementById('don-modal')?.remove();
+      return;
+    }
+    if (e.key === 'm' || e.key === 'M' || e.key === 'ь' || e.key === 'Ь') {
+      const b = document.getElementById('sound-toggle');
+      if (b) b.click();
+      return;
+    }
+    if (e.code === 'Space') {
+      e.preventDefault();
+      const ids = ['spin-btn','roll-btn','deal-btn','drop-btn','spin-wheel-btn','aviator-action-btn','mines-start-btn','keno-play','poker-deal','hilo-start','scratch-buy'];
+      for (const id of ids) {
+        const el = document.getElementById(id);
+        if (el && !el.disabled && !el.classList.contains('hidden')) { el.click(); return; }
+      }
+    }
+    if (e.key === 'i' || e.key === 'I' || e.key === 'ш' || e.key === 'Ш') {
+      document.getElementById('insure-toggle')?.click();
+    }
+  });
+}
+
+// Hook wins → BP XP + round history completion
+(function hookWinRoundBP() {
+  const prev = typeof showWinOverlay === 'function' ? showWinOverlay : null;
+  if (!prev) return;
+  showWinOverlay = function(title, sub) {
+    prev(title, sub);
+    try {
+      const m = String(sub || '').match(/[\d,.]+/);
+      const val = m ? parseFloat(m[0].replace(/,/g, '')) : 0;
+      if (val > 0) {
+        addBattlePassXP(Math.max(2, Math.floor(val / 100)));
+        const list = getRoundHistory();
+        if (list[0] && !list[0].win) {
+          list[0].win = val;
+          localStorage.setItem(ROUND_KEY(), JSON.stringify(list));
+        }
+        if (val >= 200) {
+          recordBigWinReplay({ game: currentGameId(), title: title || 'Выигрыш', amount: val });
+        }
+      }
+    } catch (e) {}
+  };
+})();
+
+document.addEventListener('DOMContentLoaded', () => {
+  try { initInsuranceToggle(); } catch(e) {}
+  try { initReplayButton(); } catch(e) {}
+  try { initHotkeys(); } catch(e) {}
+  try { applyProfileChrome(); } catch(e) {}
 });
