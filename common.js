@@ -339,11 +339,13 @@ function initMemeSystem() {
 function showToast(text) {
   const stack = document.getElementById('toast-stack');
   if (!stack) return;
+  // limit stack to reduce lag/spam
+  while (stack.children.length >= 2) stack.removeChild(stack.firstChild);
   const el = document.createElement('div');
   el.className = 'toast';
   el.textContent = text;
   stack.appendChild(el);
-  setTimeout(() => el.remove(), 3000);
+  setTimeout(() => el.remove(), 2800);
 }
 
 function showRandomFlavor() {
@@ -1269,12 +1271,30 @@ function saveMissionProgress(p) {
 function trackMission(key, add) {
   const p = getMissionProgress();
   const day = new Date().toDateString();
-  if (p.day !== day) { Object.keys(p).forEach(k => { if (k !== 'claimed') delete p[k]; }); p.day = day; p.claimed = p.claimed || {}; }
-  p[key] = (p[key] || 0) + (add || 1);
+  if (p.day !== day) {
+    const claimed = p.claimed || {};
+    Object.keys(p).forEach(k => delete p[k]);
+    p.day = day;
+    p.claimed = claimed;
+    p.notified = {};
+  }
+  if (!p.notified) p.notified = {};
+  if (!p.claimed) p.claimed = {};
+  const before = Number(p[key] || 0);
+  const after = before + (add || 1);
+  p[key] = after;
+  // Toast ONLY when crossing target for this key (once)
+  MISSIONS.forEach(m => {
+    if (m.key !== key) return;
+    if (before < m.target && after >= m.target && !p.claimed[m.id] && !p.notified[m.id]) {
+      p.notified[m.id] = true;
+      showToast('🎯 Миссия выполнена: ' + m.title + ' → +$' + m.reward);
+    }
+  });
   saveMissionProgress(p);
-  checkMissionsComplete();
 }
 function checkMissionsComplete() {
+  // kept for compatibility; no spam — only threshold logic in trackMission
   const p = getMissionProgress();
   if (!p.notified) p.notified = {};
   let changed = false;
@@ -2537,14 +2557,15 @@ function showHallHost() {
 }
 
 function scheduleHallHosts() {
+  // only on lobby — saves CPU on game pages
+  if (!document.body.classList.contains('home-page')) return;
   const tick = () => {
-    // don't stack with busik popup
     if (!document.getElementById('busik-flyer') && !document.getElementById('busik-popup')?.classList.contains('show')) {
       showHallHost();
     }
-    setTimeout(tick, 35000 + Math.random() * 40000);
+    setTimeout(tick, 55000 + Math.random() * 50000);
   };
-  setTimeout(tick, 12000 + Math.random() * 8000);
+  setTimeout(tick, 20000 + Math.random() * 15000);
 }
 
 /* ---------- Weather ---------- */
@@ -2572,13 +2593,14 @@ function setCasinoWeather(mode) {
 }
 
 function scheduleWeather() {
+  if (!document.body.classList.contains('home-page')) return;
   const cycle = () => {
     const m = WEATHER_MODES[Math.floor(Math.random() * WEATHER_MODES.length)];
     setCasinoWeather(m);
-    setTimeout(cycle, 45000 + Math.random() * 60000);
+    setTimeout(cycle, 70000 + Math.random() * 60000);
   };
   setCasinoWeather(WEATHER_MODES[0]);
-  setTimeout(cycle, 20000 + Math.random() * 15000);
+  setTimeout(cycle, 30000 + Math.random() * 20000);
 }
 
 /* ---------- VIP Leaderboard ---------- */
@@ -2709,4 +2731,34 @@ document.addEventListener('DOMContentLoaded', () => {
 /* Final jackpot hook — last wrapper wins */
 document.addEventListener('DOMContentLoaded', () => {
   installJackpotHook();
+});
+
+
+/* =========================================================
+   Session HUD + quick casino polish
+   ========================================================= */
+function initSessionHud() {
+  if (document.getElementById('session-hud')) return;
+  const s = (typeof loadStats === 'function') ? loadStats() : null;
+  const el = document.createElement('div');
+  el.id = 'session-hud';
+  el.className = 'session-hud';
+  const won = s ? (s.won || 0) : 0;
+  const lost = s ? (s.lost || 0) : 0;
+  el.innerHTML = `<span title="Выиграно за сессию">▲ $${Math.round(won).toLocaleString('en-US')}</span>
+    <span class="sh-sep">·</span>
+    <span title="Проиграно">▼ $${Math.round(lost).toLocaleString('en-US')}</span>`;
+  document.body.appendChild(el);
+  // refresh lightly
+  setInterval(() => {
+    try {
+      const st = loadStats();
+      el.innerHTML = `<span title="Выиграно">▲ $${Math.round(st.won || 0).toLocaleString('en-US')}</span>
+        <span class="sh-sep">·</span>
+        <span title="Проиграно">▼ $${Math.round(st.lost || 0).toLocaleString('en-US')}</span>`;
+    } catch (e) {}
+  }, 8000);
+}
+document.addEventListener('DOMContentLoaded', () => {
+  try { initSessionHud(); } catch (e) {}
 });

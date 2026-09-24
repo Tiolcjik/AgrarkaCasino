@@ -5972,3 +5972,67 @@ body.loss-dim {
     top: 8px; max-width: 90vw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .loss-react { font-size: 14px; padding: 12px 20px; }
 }
+
+
+/* Session HUD */
+.session-hud {
+  position: fixed;
+  left: 12px;
+  top: 72px;
+  z-index: 40;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  color: rgba(255,255,255,0.7);
+  background: rgba(10,5,25,0.55);
+  border: 1px solid rgba(212,175,55,0.2);
+  backdrop-filter: blur(8px);
+  padding: 6px 12px;
+  border-radius: 999px;
+  pointer-events: none;
+  font-variant-numeric: tabular-nums;
+}
+.session-hud .sh-sep { opacity: 0.4; margin: 0 4px; }
+.session-hud span:first-child { color: #7dffb3; }
+.session-hud span:last-child { color: #ff8a9a; }
+@media (max-width: 640px) {
+  .session-hud { top: auto; bottom: 10px; left: 10px; font-size: 10px; padding: 5px 10px; }
+}
+
+/* Slots recent results strip */
+.slots-history {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin: 10px 0 4px;
+  min-height: 28px;
+}
+.slots-history .sh-item {
+  font-size: 11px;
+  font-weight: 800;
+  padding: 4px 8px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.08);
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+.slots-history .sh-item.win {
+  color: #7dffb3;
+  border-color: rgba(0,255,136,0.25);
+  background: rgba(0,255,136,0.08);
+}
+.slots-history .sh-item.lose {
+  color: #ff8a9a;
+  border-color: rgba(255,80,100,0.2);
+}
+
+/* Toast polish */
+.toast {
+  animation: toast-in 0.35s cubic-bezier(0.22,1,0.36,1);
+}
+@keyframes toast-in {
+  from { transform: translateY(12px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}

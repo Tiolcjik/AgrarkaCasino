@@ -59,6 +59,31 @@ let autoplayRemaining = 0;
 let spinning = false;
 let jackpot = 18420 + Math.floor(Math.random() * 300);
 
+
+// ---- Recent results strip ----
+function ensureSlotsHistory() {
+  if (document.getElementById('slots-history')) return document.getElementById('slots-history');
+  const panel = document.querySelector('.game-panel');
+  if (!panel) return null;
+  const row = document.createElement('div');
+  row.id = 'slots-history';
+  row.className = 'slots-history';
+  row.title = 'Последние результаты';
+  const jp = panel.querySelector('.jackpot-meter');
+  if (jp && jp.nextSibling) panel.insertBefore(row, jp.nextSibling);
+  else panel.insertBefore(row, panel.firstChild);
+  return row;
+}
+function pushSlotsHistory(mult, isWin) {
+  const row = ensureSlotsHistory();
+  if (!row) return;
+  const item = document.createElement('span');
+  item.className = 'sh-item ' + (isWin ? 'win' : 'lose');
+  item.textContent = isWin ? ('×' + mult) : '—';
+  row.insertBefore(item, row.firstChild);
+  while (row.children.length > 12) row.removeChild(row.lastChild);
+}
+
 const spinBtn = document.getElementById('spin-btn');
 const slotMessage = document.getElementById('slot-message');
 const turboBtn = document.getElementById('turbo-btn');
@@ -257,6 +282,7 @@ function doSpin() {
     if (megaJackpot) {
       const win = jackpot;
       updateBalance(win);
+      try { pushSlotsHistory('JP', true); } catch(e) {}
       showWinOverlay('МЕГА ДЖЕКПОТ! 💎', `Сорван банк — +${fmtMoney(win)}`);
       try { if (typeof celebrateJackpot === 'function') celebrateJackpot('Пидор ты Джекпот поймал'); } catch(e) {}
       jackpot = 5000 + Math.floor(Math.random() * 500);
@@ -265,12 +291,15 @@ function doSpin() {
       const win = currentBet * mult;
       updateBalance(win);
       if (type === 'triple') {
+        try { pushSlotsHistory(mult, true); } catch(e) {}
         showWinOverlay('ТРОЙКА! 🎰', `+${fmtMoney(win)} (×${mult})`);
         try { if (typeof celebrateJackpot === 'function') celebrateJackpot('Пидор ты Джекпот поймал'); } catch(e) {}
       } else {
+        try { pushSlotsHistory(mult, true); } catch(e) {}
         slotMessage.textContent = `🎉 Комбинация! +${fmtMoney(win)} (×${mult})`;
       }
     } else {
+      try { pushSlotsHistory(0, false); } catch(e) {}
       try { SFX.lose(); } catch(e) {}
       slotMessage.textContent = 'Не повезло, попробуй ещё раз';
     }
