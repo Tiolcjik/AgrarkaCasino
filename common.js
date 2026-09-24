@@ -2863,18 +2863,18 @@ const BP_XP_LVL = 400;
 const BP_KEY = () => 'casinoBP_s' + BP_SEASON + '_' + (getSessionUser() || 'guest');
 
 const BP_AVATARS = [
-  { id: 'a1', name: 'Вайфу', tag: 'anime', img: 'avatars/a1.png' },
-  { id: 'a2', name: 'Пляж', tag: 'photo', img: 'avatars/a2.png' },
-  { id: 'a3', name: 'Рожева', tag: 'anime', img: 'avatars/a3.png' },
-  { id: 'a4', name: 'Сакура', tag: 'anime', img: 'avatars/a4.png' },
-  { id: 'a5', name: 'Неко', tag: 'alt', img: 'avatars/a5.png' },
-  { id: 'a6', name: 'Спорт', tag: 'anime', img: 'avatars/a6.png' },
-  { id: 'a7', name: 'Блеск', tag: 'anime', img: 'avatars/a7.png' },
-  { id: 'a8', name: 'Блонд', tag: 'anime', img: 'avatars/a8.png' },
-  { id: 'a9', name: 'Червона', tag: 'photo', img: 'avatars/a9.png' },
-  { id: 'a10', name: 'Білий', tag: 'photo', img: 'avatars/a10.png' },
-  { id: 'a11', name: 'Водоспад', tag: 'photo', img: 'avatars/a11.png' },
-  { id: 'a12', name: 'Селфі', tag: 'photo', img: 'avatars/a12.png' }
+  { id: 'a1', name: 'Вайфу', tag: 'anime', img: 'a1.png' },
+  { id: 'a2', name: 'Пляж', tag: 'photo', img: 'a2.png' },
+  { id: 'a3', name: 'Рожева', tag: 'anime', img: 'a3.png' },
+  { id: 'a4', name: 'Сакура', tag: 'anime', img: 'a4.png' },
+  { id: 'a5', name: 'Неко', tag: 'alt', img: 'a5.png' },
+  { id: 'a6', name: 'Спорт', tag: 'anime', img: 'a6.png' },
+  { id: 'a7', name: 'Блеск', tag: 'anime', img: 'a7.png' },
+  { id: 'a8', name: 'Блонд', tag: 'anime', img: 'a8.png' },
+  { id: 'a9', name: 'Червона', tag: 'photo', img: 'a9.png' },
+  { id: 'a10', name: 'Білий', tag: 'photo', img: 'a10.png' },
+  { id: 'a11', name: 'Водоспад', tag: 'photo', img: 'a11.png' },
+  { id: 'a12', name: 'Селфі', tag: 'photo', img: 'a12.png' }
 ];
 // Nick styles: solid matte, soft matte, gradient, chrome, neon glow
 const BP_COLORS = [
@@ -2938,6 +2938,22 @@ function bpReward(level) {
   return { free, prem };
 }
 
+
+
+function bpAvatarUrl(path) {
+  if (!path) return '';
+  if (/^https?:/i.test(path) || path.startsWith('data:')) return path;
+  try {
+    const scripts = document.getElementsByTagName('script');
+    for (let i = 0; i < scripts.length; i++) {
+      const src = scripts[i].src || '';
+      if (src.indexOf('common.js') !== -1) {
+        return src.replace(/common\.js.*$/, '') + path.replace(/^\//, '');
+      }
+    }
+  } catch (e) {}
+  return path;
+}
 
 function nickStyleFor(colorId) {
   const c = BP_COLORS.find(x => x.id === colorId) || BP_COLORS[0];
@@ -3087,7 +3103,7 @@ function renderProfileTab(box) {
   const col = prof.color || 'c1';
   const title = prof.title || '';
   const avHtml = BP_AVATARS.filter(a => bp.unlockedAvatars.includes(a.id)).map(a =>
-    `<button type="button" class="prof-av ${av===a.id?'sel':''}" data-av="${a.id}" title="${a.name}" style="background-image:url('${a.img}')"></button>`
+    `<button type="button" class="prof-av ${av===a.id?'sel':''}" data-av="${a.id}" title="${a.name}" style="background-image:url('${bpAvatarUrl(a.img)}')"></button>`
   ).join('');
   const colHtml = BP_COLORS.filter(c => bp.unlockedColors.includes(c.id)).map(c =>
     `<button class="prof-col ${col===c.id?'sel':''}" data-col="${c.id}" style="background:${c.css}" title="${c.name}"></button>`
@@ -3099,7 +3115,7 @@ function renderProfileTab(box) {
   const nickCss = nickStyleFor(col);
   box.innerHTML = `
     <div class="prof-preview">
-      <div class="prof-avatar-big" style="background-image:url('${avObj.img}')"></div>
+      <div class="prof-avatar-big" style="background-image:url('${bpAvatarUrl(avObj.img)}')"></div>
       <div class="prof-nick" style="${nickCss}">${(currentAccount() && currentAccount().name) || getSessionUser() || 'Игрок'}</div>
       <div class="prof-title-line">${title || 'Без титула'}</div>
     </div>
@@ -3135,7 +3151,7 @@ function applyProfileChrome() {
     chip.className = 'profile-chip';
     logo.parentNode.insertBefore(chip, logo.nextSibling);
   }
-  chip.innerHTML = `<span class="pc-av" style="background-image:url('${av.img}')"></span><span class="pc-nick" style="${nickCss}">${(currentAccount() && currentAccount().name) || getSessionUser() || ''}</span>`;
+  chip.innerHTML = `<span class="pc-av" style="background-image:url('${bpAvatarUrl(av.img)}')"></span><span class="pc-nick" style="${nickCss}">${(currentAccount() && currentAccount().name) || getSessionUser() || ''}</span>`;
   if (prof.title) chip.title = prof.title;
 }
 
