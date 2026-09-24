@@ -169,7 +169,7 @@ document.getElementById('close-paytable').addEventListener('click', closePaytabl
 paytableModal.addEventListener('click', (e) => { if (e.target === paytableModal) closePaytable(); });
 
 // ---------- Reel building & spinning ----------
-const STRIP_LENGTH = 14;
+const STRIP_LENGTH = 9;
 
 function buildStrip(stripEl, finalSymbol) {
   stripEl.style.transition = 'none';
@@ -264,7 +264,6 @@ function doSpin() {
       const win = currentBet * mult;
       updateBalance(win);
       if (type === 'triple') {
-        // Любые 3 одинаковых картинки → крутая анимация + надпись + песня на 7 сек
         showWinOverlay('ТРОЙКА! 🎰', `+${fmtMoney(win)} (×${mult})`);
         try { if (typeof celebrateJackpot === 'function') celebrateJackpot('Пидор ты Джекпот поймал'); } catch(e) {}
       } else {

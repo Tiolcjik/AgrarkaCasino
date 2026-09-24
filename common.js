@@ -873,34 +873,38 @@ function initSoundToggle() {
 
 /* Confetti burst for wins */
 function burstConfetti(count) {
-  const n = count || 48;
+  const n = Math.min(count || 32, 40);
+  document.querySelectorAll('.confetti-layer').forEach(e => e.remove());
   const layer = document.createElement('div');
-  layer.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:9998;overflow:hidden';
+  layer.className = 'confetti-layer';
+  layer.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:9998;overflow:hidden;will-change:contents';
   document.body.appendChild(layer);
-  const colors = ['#ffe08a', '#ff2e9a', '#00e5ff', '#d4af37', '#8a5cff', '#00ff88', '#fff'];
+  const colors = ['#ffe08a', '#ff2e9a', '#00e5ff', '#d4af37', '#8a5cff', '#00ff88'];
+  const frag = document.createDocumentFragment();
   for (let i = 0; i < n; i++) {
     const p = document.createElement('i');
-    const x = 40 + Math.random() * 20;
-    const size = 6 + Math.random() * 10;
-    const rot = Math.random() * 720 - 360;
-    const dx = (Math.random() - 0.5) * 280;
-    const dy = 200 + Math.random() * 320;
+    const x = 35 + (i % 10) * 3;
+    const size = 5 + (i % 6);
+    const rot = (i * 47) % 720 - 360;
+    const dx = ((i % 11) - 5) * 28;
+    const dy = 180 + (i % 9) * 28;
     p.style.cssText = [
-      'position:absolute', 'left:' + x + '%', 'top:42%',
-      'width:' + size + 'px', 'height:' + (size * 0.6) + 'px',
+      'position:absolute', 'left:' + x + '%', 'top:40%',
+      'width:' + size + 'px', 'height:' + Math.max(3, size * 0.55) + 'px',
       'background:' + colors[i % colors.length],
-      'border-radius:2px',
-      'opacity:1',
+      'border-radius:2px', 'opacity:1',
       'transform:translate(0,0) rotate(0deg)',
-      'transition:transform 1.1s cubic-bezier(0.15,0.7,0.25,1), opacity 1.1s ease'
+      'transition:transform 0.95s cubic-bezier(0.15,0.7,0.25,1), opacity 0.95s ease',
+      'will-change:transform,opacity'
     ].join(';');
-    layer.appendChild(p);
+    frag.appendChild(p);
     requestAnimationFrame(() => {
       p.style.transform = 'translate(' + dx + 'px,' + dy + 'px) rotate(' + rot + 'deg)';
       p.style.opacity = '0';
     });
   }
-  setTimeout(() => layer.remove(), 1300);
+  layer.appendChild(frag);
+  setTimeout(() => layer.remove(), 1100);
 }
 window.burstConfetti = burstConfetti;
 
@@ -1704,37 +1708,41 @@ function renderCabinetTab(tab) {
 
 // ---------- Money Rain + Screen Shake ----------
 function moneyRain(count) {
-  const n = count || 60;
+  const n = Math.min(count || 36, 48);
+  // remove previous rain layers to avoid stacking lag
+  document.querySelectorAll('.money-rain-layer').forEach(e => e.remove());
   const layer = document.createElement('div');
   layer.className = 'money-rain-layer';
-  layer.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:9997;overflow:hidden';
+  layer.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:9997;overflow:hidden;will-change:contents';
   document.body.appendChild(layer);
-  const symbols = ['💵','💰','💎','🪙','💸','🤑'];
+  const symbols = ['💵','💰','💎','🪙'];
+  const frag = document.createDocumentFragment();
   for (let i = 0; i < n; i++) {
     const el = document.createElement('span');
     el.textContent = symbols[i % symbols.length];
     el.style.cssText = [
-      'position:absolute', 'left:' + Math.random()*100 + '%', 'top:-40px',
-      'font-size:' + (18 + Math.random()*22) + 'px',
-      'animation:money-fall ' + (1.8 + Math.random()*2.2) + 's linear forwards',
-      'animation-delay:' + (Math.random()*0.8) + 's',
-      'opacity:0.95'
+      'position:absolute', 'left:' + (Math.random()*100).toFixed(1) + '%', 'top:-40px',
+      'font-size:' + (16 + (i % 5) * 4) + 'px',
+      'animation:money-fall ' + (1.6 + (i % 7) * 0.25) + 's linear forwards',
+      'animation-delay:' + ((i % 8) * 0.08) + 's',
+      'opacity:0.9', 'will-change:transform,opacity'
     ].join(';');
-    layer.appendChild(el);
+    frag.appendChild(el);
   }
-  setTimeout(() => layer.remove(), 4500);
+  layer.appendChild(frag);
+  setTimeout(() => layer.remove(), 3800);
 }
 
 function screenShake(intensity) {
-  const i = intensity || 6;
-  document.body.style.transition = 'none';
-  let frames = 12;
-  function tick() {
-    if (frames-- <= 0) { document.body.style.transform = ''; return; }
-    document.body.style.transform = `translate(${(Math.random()-0.5)*i}px,${(Math.random()-0.5)*i}px)`;
-    requestAnimationFrame(tick);
-  }
-  tick();
+  const i = Math.min(intensity || 6, 10);
+  // Prefer CSS class shake on a fixed overlay host to avoid layout thrash
+  document.body.classList.add('fx-shake');
+  document.body.style.setProperty('--shake-i', i + 'px');
+  clearTimeout(screenShake._t);
+  screenShake._t = setTimeout(() => {
+    document.body.classList.remove('fx-shake');
+    document.body.style.transform = '';
+  }, 420);
 }
 
 // enhance showWinOverlay — FX + solid biggest-win tracking
@@ -2257,8 +2265,11 @@ function showPizdatyOverlay(customText) {
     el.id = 'pizdaty-overlay';
     el.className = 'pizdaty-overlay';
     el.innerHTML = `
+      <div class="pizdaty-backdrop"></div>
+      <div class="pizdaty-rays" aria-hidden="true"></div>
       <div class="pizdaty-card">
-        <div class="pizdaty-fire">🔥💰🔥</div>
+        <div class="pizdaty-ring" aria-hidden="true"></div>
+        <div class="pizdaty-fire" aria-hidden="true">🔥💰🔥</div>
         <div class="pizdaty-line" id="pizdaty-line-1">Я ПІЗДАТИЙ</div>
         <div class="pizdaty-line accent" id="pizdaty-line-2">АХУЄННИЙ</div>
         <div class="pizdaty-line" id="pizdaty-line-3">СУЧАСНИЙ</div>
@@ -2266,34 +2277,34 @@ function showPizdatyOverlay(customText) {
       </div>`;
     document.body.appendChild(el);
   }
-  // Custom text for slots triple
+  const l1 = el.querySelector('#pizdaty-line-1');
+  const l2 = el.querySelector('#pizdaty-line-2');
+  const l3 = el.querySelector('#pizdaty-line-3');
+  const sub = el.querySelector('#pizdaty-sub');
   if (customText) {
-    const l1 = el.querySelector('#pizdaty-line-1');
-    const l2 = el.querySelector('#pizdaty-line-2');
-    const l3 = el.querySelector('#pizdaty-line-3');
-    const sub = el.querySelector('#pizdaty-sub');
     if (l1) l1.textContent = customText;
-    if (l2) l2.textContent = '🎉 ДЖЕКПОТ 🎉';
+    if (l2) l2.textContent = '★ ДЖЕКПОТ ★';
     if (l3) l3.textContent = '';
-    if (sub) sub.textContent = 'три одинаковых — ты красавчик';
+    if (sub) sub.textContent = 'три одинаковых — легенда зала';
   } else {
-    const l1 = el.querySelector('#pizdaty-line-1');
-    const l2 = el.querySelector('#pizdaty-line-2');
-    const l3 = el.querySelector('#pizdaty-line-3');
-    const sub = el.querySelector('#pizdaty-sub');
     if (l1) l1.textContent = 'Я ПІЗДАТИЙ';
     if (l2) l2.textContent = 'АХУЄННИЙ';
     if (l3) l3.textContent = 'СУЧАСНИЙ';
     if (sub) sub.textContent = 'і взагалі легенда цього залу';
   }
+  // Lightweight FX for smooth performance
+  try { moneyRain(customText ? 28 : 40); } catch (e) {}
+  try { screenShake(customText ? 7 : 9); } catch (e) {}
+  try { if (typeof burstConfetti === 'function') burstConfetti(customText ? 24 : 32); } catch (e) {}
+
   el.classList.remove('hide');
+  void el.offsetWidth;
   el.classList.add('show');
   document.body.classList.add('jackpot-shake');
-  try { moneyRain(120); } catch(e) {}
-  try { screenShake(14); } catch(e) {}
-  try { if (typeof burstConfetti === 'function') burstConfetti(80); } catch(e) {}
+
   const showMs = customText ? 7000 : 4500;
-  setTimeout(() => {
+  clearTimeout(showPizdatyOverlay._t);
+  showPizdatyOverlay._t = setTimeout(() => {
     el.classList.remove('show');
     el.classList.add('hide');
     document.body.classList.remove('jackpot-shake');
@@ -2404,8 +2415,6 @@ function celebrateJackpot(customText) {
   const dur = customText ? 7000 : 10000;
   try { playPizdatyJingle(dur); } catch (e) { console.warn(e); }
   try { showPizdatyOverlay(customText || null); } catch (e) { console.warn(e); }
-  try { moneyRain(90); } catch (e) {}
-  try { screenShake(10); } catch (e) {}
 }
 window.celebrateJackpot = celebrateJackpot;
 

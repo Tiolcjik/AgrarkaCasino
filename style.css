@@ -5527,55 +5527,164 @@ button, .chip, .primary-btn, a.play-btn {
   justify-content: center;
   pointer-events: none;
   opacity: 0;
-  background: radial-gradient(circle at center, rgba(255,46,154,0.25), transparent 60%);
-  transition: opacity 0.35s ease;
+  transition: opacity 0.4s ease;
+  will-change: opacity;
+  contain: layout style;
 }
 .pizdaty-overlay.show { opacity: 1; }
 .pizdaty-overlay.hide { opacity: 0; }
-.pizdaty-card {
-  text-align: center;
-  animation: pizdaty-in 0.5s cubic-bezier(0.22, 1.3, 0.36, 1);
+.pizdaty-backdrop {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 70% 55% at 50% 48%, rgba(255,46,154,0.35), transparent 70%),
+    radial-gradient(ellipse 50% 40% at 50% 50%, rgba(212,175,55,0.22), transparent 65%),
+    rgba(3,0,10,0.72);
 }
-.pizdaty-fire { font-size: 42px; margin-bottom: 8px; animation: pizdaty-bounce 0.6s ease infinite alternate; }
+.pizdaty-rays {
+  position: absolute;
+  width: min(120vw, 900px);
+  height: min(120vw, 900px);
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  background: conic-gradient(from 0deg,
+    transparent 0deg, rgba(255,224,138,0.12) 8deg, transparent 16deg,
+    transparent 40deg, rgba(255,46,154,0.1) 48deg, transparent 56deg,
+    transparent 80deg, rgba(0,229,255,0.08) 88deg, transparent 96deg,
+    transparent 120deg, rgba(255,224,138,0.1) 128deg, transparent 136deg,
+    transparent 160deg, rgba(255,46,154,0.08) 168deg, transparent 176deg,
+    transparent 200deg, rgba(255,224,138,0.1) 208deg, transparent 216deg,
+    transparent 240deg, rgba(0,229,255,0.08) 248deg, transparent 256deg,
+    transparent 280deg, rgba(255,224,138,0.1) 288deg, transparent 296deg,
+    transparent 320deg, rgba(255,46,154,0.08) 328deg, transparent 336deg,
+    transparent 360deg);
+  animation: pizdaty-spin 12s linear infinite;
+  opacity: 0.85;
+  will-change: transform;
+  contain: strict;
+}
+@keyframes pizdaty-spin { to { transform: translate(-50%, -50%) rotate(360deg); } }
+.pizdaty-card {
+  position: relative;
+  text-align: center;
+  padding: 28px 36px;
+  max-width: min(92vw, 640px);
+  animation: pizdaty-in 0.65s cubic-bezier(0.16, 1.2, 0.3, 1) both;
+  will-change: transform, opacity;
+}
+.pizdaty-ring {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 120%;
+  height: 120%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  border: 2px solid rgba(255,224,138,0.35);
+  box-shadow:
+    0 0 40px rgba(255,46,154,0.35),
+    0 0 80px rgba(212,175,55,0.2),
+    inset 0 0 30px rgba(255,224,138,0.1);
+  animation: pizdaty-ring-pulse 1.8s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes pizdaty-ring-pulse {
+  0%, 100% { transform: translate(-50%, -50%) scale(0.92); opacity: 0.7; }
+  50% { transform: translate(-50%, -50%) scale(1.05); opacity: 1; }
+}
+.pizdaty-fire {
+  font-size: clamp(28px, 6vw, 44px);
+  margin-bottom: 10px;
+  filter: drop-shadow(0 0 12px rgba(255,180,0,0.8));
+  animation: pizdaty-bounce 0.55s ease-in-out infinite alternate;
+}
 .pizdaty-line {
   font-family: var(--font-display, Cinzel, Impact, sans-serif);
-  font-size: clamp(28px, 7vw, 56px);
+  font-size: clamp(26px, 6.5vw, 52px);
   font-weight: 900;
-  letter-spacing: 2px;
-  color: #fff;
-  text-shadow: 0 0 20px #ff2e9a, 0 0 40px #d4af37, 0 4px 0 #000;
-  line-height: 1.15;
+  letter-spacing: 1.5px;
+  line-height: 1.18;
+  background: linear-gradient(105deg, #fff8d6 0%, #ffe08a 25%, #ff2e9a 55%, #ffe08a 80%, #fff 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-stroke: 0.5px rgba(255,224,138,0.35);
+  filter: drop-shadow(0 2px 0 #1a0a00) drop-shadow(0 0 18px rgba(255,46,154,0.55));
+  animation: pizdaty-shine 2.8s linear infinite;
 }
 .pizdaty-line.accent {
-  color: var(--gold-bright, #ffe08a);
-  font-size: clamp(32px, 8vw, 64px);
+  font-size: clamp(30px, 7.5vw, 58px);
+  background: linear-gradient(100deg, #ffe08a, #fff, #d4af37, #ffe08a);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0 22px rgba(255,224,138,0.7));
+  margin-top: 4px;
 }
 .pizdaty-sub {
-  margin-top: 12px;
-  font-size: 14px;
-  color: rgba(255,255,255,0.75);
-  letter-spacing: 1px;
+  margin-top: 14px;
+  font-size: clamp(12px, 3vw, 15px);
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: rgba(255,240,200,0.85);
+  text-shadow: 0 0 12px rgba(255,46,154,0.4);
 }
 @keyframes pizdaty-in {
-  0% { transform: scale(0.4) rotate(-8deg); opacity: 0; }
+  0% { transform: scale(0.35) rotate(-10deg); opacity: 0; }
+  60% { transform: scale(1.06) rotate(1deg); opacity: 1; }
   100% { transform: scale(1) rotate(0); opacity: 1; }
 }
 @keyframes pizdaty-bounce {
-  from { transform: translateY(0); }
-  to { transform: translateY(-10px); }
+  from { transform: translateY(0) scale(1); }
+  to { transform: translateY(-12px) scale(1.08); }
+}
+@keyframes pizdaty-shine {
+  to { background-position: 200% center; }
 }
 body.jackpot-shake {
-  animation: jackpot-bg 0.5s ease-in-out 3;
+  animation: jackpot-bg 0.45s ease-in-out 2;
 }
 @keyframes jackpot-bg {
   0%, 100% { filter: none; }
-  50% { filter: hue-rotate(30deg) brightness(1.15); }
+  50% { filter: brightness(1.12) saturate(1.15); }
+}
+body.fx-shake {
+  animation: fx-shake-kf 0.4s ease-in-out;
+}
+@keyframes fx-shake-kf {
+  0%, 100% { transform: translate(0,0); }
+  20% { transform: translate(calc(var(--shake-i, 6px) * -1), 2px); }
+  40% { transform: translate(var(--shake-i, 6px), -2px); }
+  60% { transform: translate(calc(var(--shake-i, 6px) * -0.6), 1px); }
+  80% { transform: translate(calc(var(--shake-i, 6px) * 0.5), -1px); }
+}
+
+/* slots reel GPU hints */
+.reel-strip {
+  will-change: transform;
+  backface-visibility: hidden;
+}
+.slot-img {
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 10px;
+  display: block;
+  margin: 0 auto;
+  image-rendering: auto;
+  content-visibility: auto;
 }
 
 @media (max-width: 600px) {
   .busik-flyer { width: min(70vw, 280px); }
-  .pizdaty-line { font-size: 26px; }
-  .pizdaty-line.accent { font-size: 30px; }
+  .pizdaty-line { font-size: 22px; letter-spacing: 0.5px; }
+  .pizdaty-line.accent { font-size: 26px; }
+  .pizdaty-card { padding: 20px 16px; }
+  .pizdaty-rays { width: 140vw; height: 140vw; }
 }
 
 /* ========== Hall hosts ========== */
