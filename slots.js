@@ -257,15 +257,16 @@ function doSpin() {
       const win = jackpot;
       updateBalance(win);
       showWinOverlay('МЕГА ДЖЕКПОТ! 💎', `Сорван банк — +${fmtMoney(win)}`);
-      try { if (typeof celebrateJackpot === 'function') celebrateJackpot(); } catch(e) {}
+      try { if (typeof celebrateJackpot === 'function') celebrateJackpot('Пидор ты Джекпот поймал'); } catch(e) {}
       jackpot = 5000 + Math.floor(Math.random() * 500);
       renderJackpot();
     } else if (mult > 0) {
       const win = currentBet * mult;
       updateBalance(win);
-      if (type === 'triple' && mult >= 10) {
-        showWinOverlay('Джекпот!', `Выигрыш +${fmtMoney(win)} (×${mult})`);
-        try { if (typeof celebrateJackpot === 'function') celebrateJackpot(); } catch(e) {}
+      if (type === 'triple') {
+        // Любые 3 одинаковых картинки → крутая анимация + надпись + песня на 7 сек
+        showWinOverlay('ТРОЙКА! 🎰', `+${fmtMoney(win)} (×${mult})`);
+        try { if (typeof celebrateJackpot === 'function') celebrateJackpot('Пидор ты Джекпот поймал'); } catch(e) {}
       } else {
         slotMessage.textContent = `🎉 Комбинация! +${fmtMoney(win)} (×${mult})`;
       }

@@ -2250,7 +2250,7 @@ function playPizdatyJingle(ms) {
   }
 }
 
-function showPizdatyOverlay() {
+function showPizdatyOverlay(customText) {
   let el = document.getElementById('pizdaty-overlay');
   if (!el) {
     el = document.createElement('div');
@@ -2259,23 +2259,45 @@ function showPizdatyOverlay() {
     el.innerHTML = `
       <div class="pizdaty-card">
         <div class="pizdaty-fire">🔥💰🔥</div>
-        <div class="pizdaty-line">Я ПІЗДАТИЙ</div>
-        <div class="pizdaty-line accent">АХУЄННИЙ</div>
-        <div class="pizdaty-line">СУЧАСНИЙ</div>
-        <div class="pizdaty-sub">і взагалі легенда цього залу</div>
+        <div class="pizdaty-line" id="pizdaty-line-1">Я ПІЗДАТИЙ</div>
+        <div class="pizdaty-line accent" id="pizdaty-line-2">АХУЄННИЙ</div>
+        <div class="pizdaty-line" id="pizdaty-line-3">СУЧАСНИЙ</div>
+        <div class="pizdaty-sub" id="pizdaty-sub">і взагалі легенда цього залу</div>
       </div>`;
     document.body.appendChild(el);
+  }
+  // Custom text for slots triple
+  if (customText) {
+    const l1 = el.querySelector('#pizdaty-line-1');
+    const l2 = el.querySelector('#pizdaty-line-2');
+    const l3 = el.querySelector('#pizdaty-line-3');
+    const sub = el.querySelector('#pizdaty-sub');
+    if (l1) l1.textContent = customText;
+    if (l2) l2.textContent = '🎉 ДЖЕКПОТ 🎉';
+    if (l3) l3.textContent = '';
+    if (sub) sub.textContent = 'три одинаковых — ты красавчик';
+  } else {
+    const l1 = el.querySelector('#pizdaty-line-1');
+    const l2 = el.querySelector('#pizdaty-line-2');
+    const l3 = el.querySelector('#pizdaty-line-3');
+    const sub = el.querySelector('#pizdaty-sub');
+    if (l1) l1.textContent = 'Я ПІЗДАТИЙ';
+    if (l2) l2.textContent = 'АХУЄННИЙ';
+    if (l3) l3.textContent = 'СУЧАСНИЙ';
+    if (sub) sub.textContent = 'і взагалі легенда цього залу';
   }
   el.classList.remove('hide');
   el.classList.add('show');
   document.body.classList.add('jackpot-shake');
-  moneyRain(100);
-  screenShake(12);
+  try { moneyRain(120); } catch(e) {}
+  try { screenShake(14); } catch(e) {}
+  try { if (typeof burstConfetti === 'function') burstConfetti(80); } catch(e) {}
+  const showMs = customText ? 7000 : 4500;
   setTimeout(() => {
     el.classList.remove('show');
     el.classList.add('hide');
     document.body.classList.remove('jackpot-shake');
-  }, 4500);
+  }, showMs);
 }
 
 function playPlaneWhoosh() {
@@ -2378,9 +2400,10 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /* Jackpot: піздатий оверлей — всегда при джекпоте */
-function celebrateJackpot() {
-  try { playPizdatyJingle(10000); } catch (e) { console.warn(e); }
-  try { showPizdatyOverlay(); } catch (e) { console.warn(e); }
+function celebrateJackpot(customText) {
+  const dur = customText ? 7000 : 10000;
+  try { playPizdatyJingle(dur); } catch (e) { console.warn(e); }
+  try { showPizdatyOverlay(customText || null); } catch (e) { console.warn(e); }
   try { moneyRain(90); } catch (e) {}
   try { screenShake(10); } catch (e) {}
 }
