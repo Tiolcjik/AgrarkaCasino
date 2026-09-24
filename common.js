@@ -313,19 +313,19 @@ function showMemePopup() {
 }
 
 function initMemeSystem() {
-  // random popup every 25-45s
+  // rarer: every 70–120s, 35% chance of meme (else toast)
   function schedule() {
-    const delay = 25000 + Math.random() * 20000;
+    const delay = 70000 + Math.random() * 50000;
     setTimeout(() => {
-      if (Math.random() < 0.7) showMemePopup();
-      else showRandomFlavor();
+      if (Math.random() < 0.35) showMemePopup();
+      else if (Math.random() < 0.5) showRandomFlavor();
       schedule();
     }, delay);
   }
   schedule();
-  // first one after 8s on home
+  // first meme much later on home
   if (document.body.classList.contains('home-page')) {
-    setTimeout(() => showMemePopup(), 8000);
+    setTimeout(() => { if (Math.random() < 0.4) showMemePopup(); }, 45000);
   }
   const closeBtn = document.getElementById('meme-popup-close');
   if (closeBtn) {
@@ -873,38 +873,34 @@ function initSoundToggle() {
 
 /* Confetti burst for wins */
 function burstConfetti(count) {
-  const n = Math.min(count || 32, 40);
-  document.querySelectorAll('.confetti-layer').forEach(e => e.remove());
+  const n = count || 48;
   const layer = document.createElement('div');
-  layer.className = 'confetti-layer';
-  layer.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:9998;overflow:hidden;will-change:contents';
+  layer.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:9998;overflow:hidden';
   document.body.appendChild(layer);
-  const colors = ['#ffe08a', '#ff2e9a', '#00e5ff', '#d4af37', '#8a5cff', '#00ff88'];
-  const frag = document.createDocumentFragment();
+  const colors = ['#ffe08a', '#ff2e9a', '#00e5ff', '#d4af37', '#8a5cff', '#00ff88', '#fff'];
   for (let i = 0; i < n; i++) {
     const p = document.createElement('i');
-    const x = 35 + (i % 10) * 3;
-    const size = 5 + (i % 6);
-    const rot = (i * 47) % 720 - 360;
-    const dx = ((i % 11) - 5) * 28;
-    const dy = 180 + (i % 9) * 28;
+    const x = 40 + Math.random() * 20;
+    const size = 6 + Math.random() * 10;
+    const rot = Math.random() * 720 - 360;
+    const dx = (Math.random() - 0.5) * 280;
+    const dy = 200 + Math.random() * 320;
     p.style.cssText = [
-      'position:absolute', 'left:' + x + '%', 'top:40%',
-      'width:' + size + 'px', 'height:' + Math.max(3, size * 0.55) + 'px',
+      'position:absolute', 'left:' + x + '%', 'top:42%',
+      'width:' + size + 'px', 'height:' + (size * 0.6) + 'px',
       'background:' + colors[i % colors.length],
-      'border-radius:2px', 'opacity:1',
+      'border-radius:2px',
+      'opacity:1',
       'transform:translate(0,0) rotate(0deg)',
-      'transition:transform 0.95s cubic-bezier(0.15,0.7,0.25,1), opacity 0.95s ease',
-      'will-change:transform,opacity'
+      'transition:transform 1.1s cubic-bezier(0.15,0.7,0.25,1), opacity 1.1s ease'
     ].join(';');
-    frag.appendChild(p);
+    layer.appendChild(p);
     requestAnimationFrame(() => {
       p.style.transform = 'translate(' + dx + 'px,' + dy + 'px) rotate(' + rot + 'deg)';
       p.style.opacity = '0';
     });
   }
-  layer.appendChild(frag);
-  setTimeout(() => layer.remove(), 1100);
+  setTimeout(() => layer.remove(), 1300);
 }
 window.burstConfetti = burstConfetti;
 
@@ -1280,11 +1276,16 @@ function trackMission(key, add) {
 }
 function checkMissionsComplete() {
   const p = getMissionProgress();
+  if (!p.notified) p.notified = {};
+  let changed = false;
   MISSIONS.forEach(m => {
-    if ((p[m.key] || 0) >= m.target && !p.claimed?.[m.id]) {
+    if ((p[m.key] || 0) >= m.target && !p.claimed?.[m.id] && !p.notified[m.id]) {
+      p.notified[m.id] = true;
+      changed = true;
       showToast('🎯 Миссия выполнена: ' + m.title + ' → +$' + m.reward);
     }
   });
+  if (changed) saveMissionProgress(p);
 }
 
 // ---------- Promo Codes ----------
@@ -1709,33 +1710,29 @@ function renderCabinetTab(tab) {
 // ---------- Money Rain + Screen Shake ----------
 function moneyRain(count) {
   const n = Math.min(count || 36, 48);
-  // remove previous rain layers to avoid stacking lag
   document.querySelectorAll('.money-rain-layer').forEach(e => e.remove());
   const layer = document.createElement('div');
   layer.className = 'money-rain-layer';
-  layer.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:9997;overflow:hidden;will-change:contents';
+  layer.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:9997;overflow:hidden';
   document.body.appendChild(layer);
-  const symbols = ['💵','💰','💎','🪙'];
-  const frag = document.createDocumentFragment();
+  const symbols = ['💵','💰','💎','🪙','💸','🤑'];
   for (let i = 0; i < n; i++) {
     const el = document.createElement('span');
     el.textContent = symbols[i % symbols.length];
     el.style.cssText = [
-      'position:absolute', 'left:' + (Math.random()*100).toFixed(1) + '%', 'top:-40px',
-      'font-size:' + (16 + (i % 5) * 4) + 'px',
-      'animation:money-fall ' + (1.6 + (i % 7) * 0.25) + 's linear forwards',
-      'animation-delay:' + ((i % 8) * 0.08) + 's',
-      'opacity:0.9', 'will-change:transform,opacity'
+      'position:absolute', 'left:' + Math.random()*100 + '%', 'top:-40px',
+      'font-size:' + (18 + Math.random()*22) + 'px',
+      'animation:money-fall ' + (1.8 + Math.random()*2.2) + 's linear forwards',
+      'animation-delay:' + (Math.random()*0.8) + 's',
+      'opacity:0.95'
     ].join(';');
-    frag.appendChild(el);
+    layer.appendChild(el);
   }
-  layer.appendChild(frag);
-  setTimeout(() => layer.remove(), 3800);
+  setTimeout(() => layer.remove(), 4500);
 }
 
 function screenShake(intensity) {
   const i = Math.min(intensity || 6, 10);
-  // Prefer CSS class shake on a fixed overlay host to avoid layout thrash
   document.body.classList.add('fx-shake');
   document.body.style.setProperty('--shake-i', i + 'px');
   clearTimeout(screenShake._t);
@@ -1971,6 +1968,7 @@ function initSessionChrome() {
 
 // ---------- Double or Nothing after big win ----------
 let _lastWinAmount = 0;
+window.__slotsJackpotUntil = 0; // timestamp when slots jackpot anim ends
 const _prevShowWin = showWinOverlay;
 showWinOverlay = function(title, sub) {
   _prevShowWin(title, sub);
@@ -1979,10 +1977,34 @@ showWinOverlay = function(title, sub) {
     const val = parseFloat(m[0].replace(/,/g, ''));
     if (val >= 50) {
       _lastWinAmount = val;
-      setTimeout(() => offerDoubleOrNothing(val), 1200);
+      const now = Date.now();
+      // After slots jackpot animation — wait until it ends (+ small gap)
+      const delay = (window.__slotsJackpotUntil && window.__slotsJackpotUntil > now)
+        ? (window.__slotsJackpotUntil - now + 400)
+        : 1400;
+      setTimeout(() => offerDoubleOrNothing(val), delay);
     }
   }
 };
+
+function showDonLoseBanner() {
+  let el = document.getElementById('don-lose-banner');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'don-lose-banner';
+    el.className = 'don-lose-banner';
+    document.body.appendChild(el);
+  }
+  el.textContent = 'сука еблан опять завинил';
+  el.classList.remove('hide');
+  void el.offsetWidth;
+  el.classList.add('show');
+  clearTimeout(showDonLoseBanner._t);
+  showDonLoseBanner._t = setTimeout(() => {
+    el.classList.remove('show');
+    el.classList.add('hide');
+  }, 4000);
+}
 
 function offerDoubleOrNothing(amount) {
   if (document.getElementById('don-modal')) return;
@@ -2013,10 +2035,8 @@ function offerDoubleOrNothing(amount) {
       window.__skipLossRecord = false;
       pushTx('win', amount, 'double-or-nothing');
       try { recordWin(amount, currentGameId()); } catch(e) {}
-      // overlay without re-parsing huge number as new "max" incorrectly via 2x text
       showWinOverlay('🔥 DOUBLE!', '+' + fmtMoney(amount));
-      moneyRain(50);
-      try { playPizdatyJingle(5000); } catch(_) {}
+      try { moneyRain(28); } catch(_) {}
       try { SFX.bigWin(); } catch(_) {}
     } else {
       window.__skipLossRecord = true;
@@ -2024,7 +2044,7 @@ function offerDoubleOrNothing(amount) {
       window.__skipLossRecord = false;
       pushTx('bet', -amount, 'double-or-nothing-loss');
       try { recordLoss(amount, currentGameId()); } catch(e) {}
-      showToast('💀 Nothing... выигрыш сгорел');
+      showDonLoseBanner();
       try { SFX.lose(); } catch(_) {}
     }
   };
@@ -2238,20 +2258,37 @@ let _pizdatyAudio = null;
 let _pizdatyStopTimer = null;
 function playPizdatyJingle(ms) {
   if (!soundOn) return;
-  const dur = typeof ms === 'number' ? ms : 10000;
+  // base length + extra for soft fade
+  const dur = (typeof ms === 'number' ? ms : 10000) + 2500;
   try {
     if (_pizdatyStopTimer) clearTimeout(_pizdatyStopTimer);
     if (_pizdatyAudio) {
       try { _pizdatyAudio.pause(); } catch(e) {}
     }
     _pizdatyAudio = new Audio('pizdaty.mp3');
-    _pizdatyAudio.volume = 0.75;
+    _pizdatyAudio.volume = 0.78;
     _pizdatyAudio.currentTime = 0;
     const p = _pizdatyAudio.play();
     if (p && p.catch) p.catch(() => {});
+    // soft fade-out last ~2.2s
+    const fadeStart = Math.max(500, dur - 2200);
     _pizdatyStopTimer = setTimeout(() => {
-      try { if (_pizdatyAudio) { _pizdatyAudio.pause(); _pizdatyAudio.currentTime = 0; } } catch(e) {}
-    }, dur);
+      const a = _pizdatyAudio;
+      if (!a) return;
+      const steps = 12;
+      let i = 0;
+      const startVol = a.volume;
+      const fadeIv = setInterval(() => {
+        i++;
+        try {
+          a.volume = Math.max(0, startVol * (1 - i / steps));
+        } catch (e) {}
+        if (i >= steps) {
+          clearInterval(fadeIv);
+          try { a.pause(); a.currentTime = 0; } catch (e) {}
+        }
+      }, 180);
+    }, fadeStart);
     if (dur >= 8000) setTimeout(() => { try { SFX.bigWin(); } catch(e) {} }, 400);
   } catch (e) {
     console.warn('pizdaty play fail', e);
@@ -2292,17 +2329,16 @@ function showPizdatyOverlay(customText) {
     if (l3) l3.textContent = 'СУЧАСНИЙ';
     if (sub) sub.textContent = 'і взагалі легенда цього залу';
   }
-  // Lightweight FX for smooth performance
-  try { moneyRain(customText ? 28 : 40); } catch (e) {}
-  try { screenShake(customText ? 7 : 9); } catch (e) {}
-  try { if (typeof burstConfetti === 'function') burstConfetti(customText ? 24 : 32); } catch (e) {}
+  try { moneyRain(customText ? 28 : 36); } catch (e) {}
+  try { screenShake(customText ? 7 : 8); } catch (e) {}
+  try { if (typeof burstConfetti === 'function') burstConfetti(customText ? 24 : 28); } catch (e) {}
 
-  el.classList.remove('hide');
+  el.classList.remove('hide', 'show');
   void el.offsetWidth;
   el.classList.add('show');
   document.body.classList.add('jackpot-shake');
 
-  const showMs = customText ? 7000 : 4500;
+  const showMs = customText ? 7500 : 4500;
   clearTimeout(showPizdatyOverlay._t);
   showPizdatyOverlay._t = setTimeout(() => {
     el.classList.remove('show');
@@ -2412,8 +2448,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
 /* Jackpot: піздатий оверлей — всегда при джекпоте */
 function celebrateJackpot(customText) {
-  const dur = customText ? 7000 : 10000;
-  try { playPizdatyJingle(dur); } catch (e) { console.warn(e); }
+  const animMs = customText ? 7500 : 4500;
+  const songMs = customText ? 9000 : 10000;
+  // block Double-or-Nothing until animation ends (slots)
+  if (customText) {
+    window.__slotsJackpotUntil = Date.now() + animMs;
+  }
+  try { playPizdatyJingle(songMs); } catch (e) { console.warn(e); }
   try { showPizdatyOverlay(customText || null); } catch (e) { console.warn(e); }
 }
 window.celebrateJackpot = celebrateJackpot;

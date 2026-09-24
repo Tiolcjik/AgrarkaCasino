@@ -231,6 +231,7 @@ function doSpin() {
   }
 
   spinning = true;
+  try { if (typeof trackMission === 'function') trackMission('m_spin', 1); } catch(e) {}
   try { SFX.spin(); } catch(e) {}
   spinBtn.disabled = true;
   slotMessage.textContent = '';
