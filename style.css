@@ -6153,3 +6153,59 @@ body.loss-dim {
   width: 36px; height: 36px; border-radius: 10px;
   box-shadow: inset 0 0 0 1px rgba(255,255,255,0.15);
 }
+
+/* Local BP avatars — perfect circles */
+.prof-av {
+  width: 72px !important;
+  height: 72px !important;
+  border-radius: 50% !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  border: 2px solid rgba(255,255,255,0.12);
+  background: #1a1028;
+}
+.prof-av img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  display: block;
+}
+.prof-av.sel {
+  border-color: #ffe08a !important;
+  box-shadow: 0 0 0 2px rgba(255,224,138,0.35), 0 0 18px rgba(255,46,154,0.4);
+}
+.prof-av-tag {
+  display: none;
+}
+.prof-avatar-big {
+  width: 110px !important;
+  height: 110px !important;
+  border-radius: 50% !important;
+  overflow: hidden !important;
+  margin: 0 auto 12px !important;
+  border: 3px solid rgba(212,175,55,0.55) !important;
+  box-shadow: 0 0 28px rgba(255,46,154,0.4) !important;
+}
+.prof-avatar-big img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  display: block;
+}
+.profile-chip .pc-av {
+  width: 26px !important;
+  height: 26px !important;
+  border-radius: 50% !important;
+  overflow: hidden !important;
+  flex-shrink: 0;
+  border: 1px solid rgba(255,255,255,0.2);
+}
+.profile-chip .pc-av img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  display: block;
+}

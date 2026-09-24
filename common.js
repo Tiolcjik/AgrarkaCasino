@@ -2863,18 +2863,18 @@ const BP_XP_LVL = 400;
 const BP_KEY = () => 'casinoBP_s' + BP_SEASON + '_' + (getSessionUser() || 'guest');
 
 const BP_AVATARS = [
-  { id: 'a1', name: 'Вайфу', tag: 'anime', img: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200&h=200&fit=crop&crop=faces' },
-  { id: 'a2', name: 'Альтушка', tag: 'alt', img: 'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=200&h=200&fit=crop&crop=faces' },
-  { id: 'a3', name: 'Неко-тян', tag: 'anime', img: 'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=200&h=200&fit=crop&crop=faces' },
-  { id: 'a4', name: 'VIP-дівчина', tag: 'glam', img: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=200&h=200&fit=crop&crop=faces' },
-  { id: 'a5', name: 'Готемка', tag: 'alt', img: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=200&h=200&fit=crop&crop=faces' },
-  { id: 'a6', name: 'Сонячна', tag: 'cute', img: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&h=200&fit=crop&crop=faces' },
-  { id: 'a7', name: 'Кібер-тян', tag: 'anime', img: 'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=200&h=200&fit=crop&crop=face' },
-  { id: 'a8', name: 'Леді Джекпот', tag: 'glam', img: 'https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?w=200&h=200&fit=crop&crop=faces' },
-  { id: 'a9', name: 'Мілашка', tag: 'cute', img: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&h=200&fit=crop&crop=faces' },
-  { id: 'a10', name: 'Дарк-квін', tag: 'alt', img: 'https://images.unsplash.com/photo-1502823403499-6ccfcf4fb453?w=200&h=200&fit=crop&crop=faces' },
-  { id: 'a11', name: 'Пінк-вайфу', tag: 'anime', img: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=200&h=200&fit=crop&crop=faces' },
-  { id: 'a12', name: 'Ікона сезону', tag: 'glam', img: 'https://images.unsplash.com/photo-1524638431109-93d95c858f73?w=200&h=200&fit=crop&crop=faces' }
+  { id: 'a1', name: 'Вайфу', tag: 'anime', img: 'avatars/a1.png' },
+  { id: 'a2', name: 'Пляж', tag: 'photo', img: 'avatars/a2.png' },
+  { id: 'a3', name: 'Рожева', tag: 'anime', img: 'avatars/a3.png' },
+  { id: 'a4', name: 'Сакура', tag: 'anime', img: 'avatars/a4.png' },
+  { id: 'a5', name: 'Неко', tag: 'alt', img: 'avatars/a5.png' },
+  { id: 'a6', name: 'Спорт', tag: 'anime', img: 'avatars/a6.png' },
+  { id: 'a7', name: 'Блеск', tag: 'anime', img: 'avatars/a7.png' },
+  { id: 'a8', name: 'Блонд', tag: 'anime', img: 'avatars/a8.png' },
+  { id: 'a9', name: 'Червона', tag: 'photo', img: 'avatars/a9.png' },
+  { id: 'a10', name: 'Білий', tag: 'photo', img: 'avatars/a10.png' },
+  { id: 'a11', name: 'Водоспад', tag: 'photo', img: 'avatars/a11.png' },
+  { id: 'a12', name: 'Селфі', tag: 'photo', img: 'avatars/a12.png' }
 ];
 // Nick styles: solid matte, soft matte, gradient, chrome, neon glow
 const BP_COLORS = [
