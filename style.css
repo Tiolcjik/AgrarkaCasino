@@ -6209,3 +6209,47 @@ body.loss-dim {
   object-position: center top;
   display: block;
 }
+
+/* Avatar circles via background-image */
+.prof-av {
+  width: 72px !important;
+  height: 72px !important;
+  border-radius: 50% !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  border: 2px solid rgba(255,255,255,0.15) !important;
+  background-color: #1a1028 !important;
+  background-size: cover !important;
+  background-position: center top !important;
+  background-repeat: no-repeat !important;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.prof-av.sel {
+  border-color: #ffe08a !important;
+  box-shadow: 0 0 0 2px rgba(255,224,138,0.4), 0 0 20px rgba(255,46,154,0.45) !important;
+}
+.prof-avatar-big {
+  width: 110px !important;
+  height: 110px !important;
+  border-radius: 50% !important;
+  margin: 0 auto 12px !important;
+  border: 3px solid rgba(212,175,55,0.55) !important;
+  box-shadow: 0 0 28px rgba(255,46,154,0.4) !important;
+  background-color: #1a1028 !important;
+  background-size: cover !important;
+  background-position: center top !important;
+  background-repeat: no-repeat !important;
+}
+.profile-chip .pc-av {
+  width: 26px !important;
+  height: 26px !important;
+  border-radius: 50% !important;
+  display: inline-block !important;
+  background-size: cover !important;
+  background-position: center top !important;
+  background-repeat: no-repeat !important;
+  background-color: #1a1028;
+  border: 1px solid rgba(255,255,255,0.25);
+  flex-shrink: 0;
+}

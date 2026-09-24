@@ -3087,7 +3087,7 @@ function renderProfileTab(box) {
   const col = prof.color || 'c1';
   const title = prof.title || '';
   const avHtml = BP_AVATARS.filter(a => bp.unlockedAvatars.includes(a.id)).map(a =>
-    `<button class="prof-av ${av===a.id?'sel':''}" data-av="${a.id}" title="${a.name}"><img src="${a.img}" alt="${a.name}" loading="lazy"/><span class="prof-av-tag">${a.tag||''}</span></button>`
+    `<button type="button" class="prof-av ${av===a.id?'sel':''}" data-av="${a.id}" title="${a.name}" style="background-image:url('${a.img}')"></button>`
   ).join('');
   const colHtml = BP_COLORS.filter(c => bp.unlockedColors.includes(c.id)).map(c =>
     `<button class="prof-col ${col===c.id?'sel':''}" data-col="${c.id}" style="background:${c.css}" title="${c.name}"></button>`
@@ -3099,7 +3099,7 @@ function renderProfileTab(box) {
   const nickCss = nickStyleFor(col);
   box.innerHTML = `
     <div class="prof-preview">
-      <div class="prof-avatar-big"><img src="${avObj.img}" alt="${avObj.name}"/></div>
+      <div class="prof-avatar-big" style="background-image:url('${avObj.img}')"></div>
       <div class="prof-nick" style="${nickCss}">${(currentAccount() && currentAccount().name) || getSessionUser() || 'Игрок'}</div>
       <div class="prof-title-line">${title || 'Без титула'}</div>
     </div>
@@ -3135,7 +3135,7 @@ function applyProfileChrome() {
     chip.className = 'profile-chip';
     logo.parentNode.insertBefore(chip, logo.nextSibling);
   }
-  chip.innerHTML = `<span class="pc-av"><img src="${av.img}" alt=""/></span><span class="pc-nick" style="${nickCss}">${(currentAccount() && currentAccount().name) || getSessionUser() || ''}</span>`;
+  chip.innerHTML = `<span class="pc-av" style="background-image:url('${av.img}')"></span><span class="pc-nick" style="${nickCss}">${(currentAccount() && currentAccount().name) || getSessionUser() || ''}</span>`;
   if (prof.title) chip.title = prof.title;
 }
 
