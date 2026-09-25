@@ -189,13 +189,20 @@
     playWinMusic();
     try { S.win(); } catch (e) {}
 
-    // Credit once on winner's device
-    if (isMe && game.payouts && game.payouts[myUid] != null) {
-      const key = 'pokerCredited_' + roomCode + '_' + seq;
+    // После раздачи: зафиксировать стек → реал-баланс (один раз на игрока)
+    if (myUid && players[myUid]) {
+      const key = 'pokerSync_' + roomCode + '_' + seq;
       if (!sessionStorage.getItem(key)) {
         sessionStorage.setItem(key, '1');
-        credit(Number(game.payouts[myUid]) || 0);
-        db.ref('rooms/' + roomCode + '/players/' + myUid + '/stack').set(Math.floor(bal())).catch(() => {});
+        const finalStack = Math.max(0, Math.floor(Number(players[myUid].stack) || 0));
+        if (window.CasinoReal && typeof CasinoReal.setRealBalance === 'function') {
+          CasinoReal.setRealBalance(null, finalStack).then(() => {
+            try {
+              const a = el('balance-amount');
+              if (a && typeof fmtUAH === 'function') a.textContent = fmtUAH(finalStack, true);
+            } catch (e) {}
+          }).catch(() => {});
+        }
       }
     }
 
@@ -226,25 +233,28 @@
   let lastAdvanceSeq = 0;
   let advanceTimer = null;
 
+  // Во время раздачи источник правды — stack за столом.
+  // Реал-баланс подтягивается при входе/ready и фиксируется после раздачи.
   function bal() {
-    if (typeof balance === 'number') return balance;
-    if (typeof window.balance === 'number') return window.balance;
     try {
-      const a = el('balance-amount');
-      if (a) return parseFloat(a.textContent.replace(/[^0-9.]/g, '')) || 0;
+      if (room && room.players && myUid && room.players[myUid]) {
+        const s = Number(room.players[myUid].stack);
+        if (Number.isFinite(s) && s >= 0) return s;
+      }
     } catch (e) {}
+    if (window.CasinoReal && typeof CasinoReal.getRealBalanceSync === 'function') {
+      return CasinoReal.getRealBalanceSync();
+    }
     return 0;
   }
   function pay(n) {
+    // Ставки идут только из stack (Firebase), реал не трогаем в середине руки
     n = Math.floor(n);
     if (n <= 0) return true;
-    if (bal() < n) return false;
-    if (typeof updateBalance === 'function') updateBalance(-n);
-    return true;
+    return bal() >= n;
   }
   function credit(n) {
-    n = Math.floor(n);
-    if (n > 0 && typeof updateBalance === 'function') updateBalance(n);
+    // no-op mid-hand — начисление через stack + sync в конце
   }
 
   function makeDeck() {
@@ -525,7 +535,7 @@
           (uid === hostUid ? '<span class="crown">👑</span>' : '') +
           '<span class="ring"></span></div>' +
         '<div class="name">' + (p.name || 'Игрок') + (uid === myUid ? ' · ты' : '') + '</div>' +
-        '<div class="stack">$' + (uid === myUid ? Math.floor(bal()) : (p.stack ?? 0)) + '</div>' +
+        '<div class="stack">' + Math.floor(Number(p.stack) || 0) + ' ₴</div>' +
         '<div class="betline">' + (p.folded ? 'ПАСС' : (p.allIn ? 'ALL-IN $' + (p.bet || 0) : (p.bet ? 'Ставка $' + p.bet : ''))) + '</div>' +
         '<div class="mini-cards">' + cards + '</div>' +
         '<div class="hand-name">' + handName + '</div>';
@@ -622,7 +632,7 @@
     } else st = 'Стол';
 
     if (el('status')) el('status').textContent = st;
-    if (el('pot')) el('pot').textContent = '$' + (game.pot || 0);
+    if (el('pot')) el('pot').textContent = (game.pot || 0) + ' ₴';
     if (el('phase')) el('phase').textContent = PHASES[game.phase] || 'OMAHA';
     renderPotChips(game.pot);
     renderPlayers(players);
@@ -656,21 +666,7 @@
     const money = Math.max(0, Math.floor(bal()));
     const broke = !!me?.allIn || money <= 0;
 
-    // Deduct blinds from REAL casino balance once per hand (SB/BB)
-    if (status === 'playing' && game.phase === 'preflop' && me) {
-      const seq = game.seq || 0;
-      const blindKey = 'pokerBlind_' + roomCode + '_' + seq;
-      if (seq && !sessionStorage.getItem(blindKey)) {
-        const myBet = Number(me.bet) || 0;
-        if (myBet > 0) {
-          sessionStorage.setItem(blindKey, '1');
-          pay(myBet); // takes from main casino balance
-          db.ref('rooms/' + roomCode + '/players/' + myUid + '/stack').set(Math.floor(bal())).catch(() => {});
-        } else {
-          sessionStorage.setItem(blindKey, '1');
-        }
-      }
-    }
+    // Блайнды уже вычтены из stack в startHand — реал не трогаем
 
     if (el('btn-ready')) el('btn-ready').style.display = status === 'waiting' ? 'inline-block' : 'none';
 
@@ -690,7 +686,7 @@
     if (el('btn-call')) {
       if (need > 0) {
         const canPay = Math.min(need, money);
-        el('btn-call').textContent = canPay < need ? ('Сравнять $' + canPay + ' (всё)') : ('Сравнять $' + need);
+        el('btn-call').textContent = canPay < need ? ('Сравнять ' + canPay + ' ₴ (всё)') : ('Сравнять ' + need + ' ₴');
       } else {
         el('btn-call').textContent = 'Сравнять';
       }
@@ -817,8 +813,8 @@
     const names = winners.map(u => players[u]?.name || 'Игрок').join(', ');
     if (el('msg')) {
       el('msg').textContent = winners.length > 1
-        ? ('Ничья: ' + names + ' · по $' + share)
-        : ('Победитель: ' + names + ' · +$' + pot);
+        ? ('Ничья: ' + names + ' · по ' + share + ' ₴')
+        : ('Победитель: ' + names + ' · +' + pot + ' ₴');
     }
     // Overlay+music triggered via Firebase update → updateUI → showWinnerToEveryone for ALL
 
@@ -1033,11 +1029,11 @@
 
     const players = room.players, game = room.game, me = players[myUid];
     const need = Math.max(0, (Number(game.currentBet) || 0) - (Number(me.bet) || 0));
-    // Real casino balance is the source of truth for my chips
-    const money = Math.max(0, Math.floor(bal()));
+    // Стек за столом — единственный источник фишек в раздаче
+    const money = Math.max(0, Math.floor(Number(me.stack) || 0));
 
     if (type === 'check' && need > 0) {
-      if (el('msg')) el('msg').textContent = 'Нужно сравнять $' + need + ' или пас';
+      if (el('msg')) el('msg').textContent = 'Нужно сравнять ' + need + ' ₴ или пас';
       return;
     }
     if (type === 'call' && need <= 0) {
@@ -1067,13 +1063,9 @@
         updates['players/' + myUid + '/folded'] = true;
         S.fold();
         type = 'fold';
-      } else {
-        if (amount > 0 && !pay(amount)) {
-          if (el('msg')) el('msg').textContent = 'Недостаточно средств на балансе';
-          return;
-        }
+      } else if (amount > 0) {
         newBet = (Number(me.bet) || 0) + amount;
-        newStack = Math.floor(bal());
+        newStack = money - amount;
         newPot += amount;
         if (amount < need || newStack <= 0) wentAllIn = true;
         S.chip();
@@ -1086,15 +1078,11 @@
       let amount = Math.max(0, target - (Number(me.bet) || 0));
       if (amount > money) amount = money;
       if (amount < 1) {
-        if (el('msg')) el('msg').textContent = 'Недостаточно средств на балансе';
-        return;
-      }
-      if (!pay(amount)) {
-        if (el('msg')) el('msg').textContent = 'Недостаточно средств на балансе';
+        if (el('msg')) el('msg').textContent = 'Недостаточно средств';
         return;
       }
       newBet = (Number(me.bet) || 0) + amount;
-      newStack = Math.floor(bal());
+      newStack = money - amount;
       newPot += amount;
       if (newBet > newCurrentBet) {
         newCurrentBet = newBet;
@@ -1107,15 +1095,11 @@
     if (type === 'allin') {
       const amount = Math.floor(money);
       if (amount < 1) {
-        if (el('msg')) el('msg').textContent = 'Нет средств на балансе';
-        return;
-      }
-      if (!pay(amount)) {
-        if (el('msg')) el('msg').textContent = 'Недостаточно средств на балансе';
+        if (el('msg')) el('msg').textContent = 'Нет средств';
         return;
       }
       newBet = (Number(me.bet) || 0) + amount;
-      newStack = Math.floor(bal());
+      newStack = 0;
       newPot += amount;
       wentAllIn = true;
       if (newBet > newCurrentBet) {
@@ -1209,6 +1193,18 @@
 
   async function init() {
     if (!roomCode) { alert('Нет кода комнаты'); location.href = 'index.html'; return; }
+    // Подтянуть реальный баланс до старта
+    try {
+      if (window.CasinoReal) {
+        await CasinoReal.getRealBalance();
+        CasinoReal.renderRealBalancePill && CasinoReal.renderRealBalancePill();
+        const a = el('balance-amount');
+        if (a && typeof fmtUAH === 'function') a.textContent = fmtUAH(bal(), true);
+        else if (a) a.textContent = bal() + ' ₴';
+        const label = document.querySelector('.balance-label');
+        if (label) label.textContent = 'Реал · Покер';
+      }
+    } catch (e) { console.warn(e); }
     const user = auth.currentUser || (await auth.signInAnonymously()).user;
     myUid = user.uid;
     const name = (typeof currentAccount === 'function' && currentAccount()?.name) || 'Игрок';

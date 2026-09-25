@@ -367,11 +367,31 @@
     return cred.user;
   }
 
+  async function getPokerChips() {
+    try {
+      if (window.CasinoReal && typeof CasinoReal.getRealBalance === 'function') {
+        const login = (typeof getSessionUser === 'function' && getSessionUser()) || null;
+        if (!login) return 0;
+        return Math.max(0, Math.floor(await CasinoReal.getRealBalance(login)));
+      }
+    } catch (e) { console.warn(e); }
+    return 0;
+  }
+
   async function createPokerRoom() {
     try {
+      if (typeof requireAuth === 'function' && !requireAuth('⚠️ Войди, чтобы играть в покер на реал')) return;
+      const chips = await getPokerChips();
+      if (chips <= 0) {
+        alert('На реал-балансе 0 ₴.\nПополни через «Пополнить → Реал ₴ (Покер)» и дождись подтверждения.');
+        const btn = document.getElementById('deposit-btn');
+        if (btn) btn.click();
+        return;
+      }
       const user = await ensureAuth();
       const code = generateRoomCode();
       const roomRef = db.ref('rooms/' + code);
+      const name = (typeof currentAccount === 'function' && currentAccount()?.name) || 'Игрок';
 
       await roomRef.set({
         info: {
@@ -382,8 +402,9 @@
         },
         players: {
           [user.uid]: {
-            name: (typeof currentAccount === 'function' && currentAccount()?.name) || 'Игрок',
-            chips: 1000,
+            name,
+            chips: chips,
+            stack: chips,
             seat: 0,
             ready: false
           }
@@ -391,9 +412,6 @@
       });
 
       location.href = 'poker-multi.html?room=' + code;
-      console.log('Комната создана:', code);
-      // Позже здесь будем переходить на страницу стола
-      // location.href = 'poker-multi.html?room=' + code;
     } catch (err) {
       console.error(err);
       alert('Ошибка создания стола: ' + err.message);
@@ -401,11 +419,19 @@
   }
 
   async function joinPokerRoom() {
+    if (typeof requireAuth === 'function' && !requireAuth('⚠️ Войди, чтобы играть в покер на реал')) return;
     const code = prompt('Введи код комнаты (6 символов):');
     if (!code) return;
 
     const cleanCode = code.trim().toUpperCase();
     try {
+      const chips = await getPokerChips();
+      if (chips <= 0) {
+        alert('На реал-балансе 0 ₴.\nПополни через «Пополнить → Реал ₴ (Покер)» и дождись подтверждения.');
+        const btn = document.getElementById('deposit-btn');
+        if (btn) btn.click();
+        return;
+      }
       const user = await ensureAuth();
       const roomRef = db.ref('rooms/' + cleanCode);
       const snap = await roomRef.once('value');
@@ -424,17 +450,16 @@
         return;
       }
 
-      // Добавляем себя
+      const name = (typeof currentAccount === 'function' && currentAccount()?.name) || 'Игрок';
       await roomRef.child('players/' + user.uid).set({
-        name: (typeof currentAccount === 'function' && currentAccount()?.name) || 'Игрок',
-        chips: 1000,
+        name,
+        chips: chips,
+        stack: chips,
         seat: playerCount,
         ready: false
       });
 
       location.href = 'poker-multi.html?room=' + cleanCode;
-      console.log('Вошёл в комнату:', cleanCode);
-      // Позже: location.href = 'poker-multi.html?room=' + cleanCode;
     } catch (err) {
       console.error(err);
       alert('Ошибка входа: ' + err.message);

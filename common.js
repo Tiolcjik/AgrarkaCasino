@@ -227,6 +227,16 @@ function fmtMoney(n, withCents) {
   return '$' + Math.round(val).toLocaleString('en-US');
 }
 
+/** Реал-баланс покера — в гривнах */
+function fmtUAH(n, withCents) {
+  const val = Math.round((Number(n) + Number.EPSILON) * 100) / 100;
+  if (withCents) {
+    return val.toLocaleString('uk-UA', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ₴';
+  }
+  return Math.round(val).toLocaleString('uk-UA') + ' ₴';
+}
+window.fmtUAH = fmtUAH;
+
 function renderBalance() {
   if (balanceEl) balanceEl.textContent = fmtMoney(balance, true);
 }
@@ -400,11 +410,372 @@ function initDailyBonus() {
   });
 }
 
-// ---------- Deposit (реалистичный платёжный шлюз) ----------
-// Injected on every page so we don't have to duplicate markup in each .html file.
-function initDeposit() {
+// ---------- REAL MONEY (только для покера) + DEMO deposit ----------
+const REAL_CARD = '4441 1111 3842 2757';
+const ADMIN_PASS = 'agrarka2024';
+const FB_CONFIG = {
+  apiKey: 'AIzaSyDV42bV1_me7JKSckA3vLvoOXmSak9YqqA',
+  authDomain: 'agrarka-pokerr.firebaseapp.com',
+  databaseURL: 'https://agrarka-pokerr-default-rtdb.europe-west1.firebasedatabase.app',
+  projectId: 'agrarka-pokerr',
+  storageBucket: 'agrarka-pokerr.firebasestorage.app',
+  messagingSenderId: '622812033913',
+  appId: '1:622812033913:web:7a2122a45d712b81ae75a8'
+};
+
+// ===== TELEGRAM (уведомления админу) =====
+// Вставь токен от @BotFather и свой chat_id (узнать: напиши боту /start, потом открой
+// https://api.telegram.org/bot<TOKEN>/getUpdates — там будет "chat":{"id": ...})
+const TELEGRAM_BOT_TOKEN = ''; // например '7123456789:AAH...'
+const TELEGRAM_ADMIN_CHAT_ID = ''; // например '123456789'
+
+/** Уведомления шлёт только telegram-bot.js — иначе дублируются сообщения */
+async function notifyTelegramAdmin() {
+  return;
+}
+
+let _realBalCache = 0;
+let _realBalLogin = null;
+let _realBalReady = false;
+
+function ensureFirebase() {
+  return new Promise((resolve, reject) => {
+    if (window.db && window.auth) {
+      resolve({ db: window.db, auth: window.auth });
+      return;
+    }
+    function done() {
+      try {
+        if (!firebase.apps || !firebase.apps.length) {
+          firebase.initializeApp(FB_CONFIG);
+        }
+        window.auth = firebase.auth();
+        window.db = firebase.database();
+        resolve({ db: window.db, auth: window.auth });
+      } catch (e) { reject(e); }
+    }
+    if (typeof firebase !== 'undefined' && firebase.database) {
+      done();
+      return;
+    }
+    const urls = [
+      'https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js',
+      'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js',
+      'https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js'
+    ];
+    let i = 0;
+    (function loadNext() {
+      if (i >= urls.length) { done(); return; }
+      const s = document.createElement('script');
+      s.src = urls[i++];
+      s.onload = loadNext;
+      s.onerror = () => reject(new Error('Firebase load fail'));
+      document.head.appendChild(s);
+    })();
+  });
+}
+
+async function getRealBalance(login) {
+  login = login || getSessionUser();
+  if (!login) return 0;
+  try {
+    const { db } = await ensureFirebase();
+    const snap = await db.ref('realBalances/' + login).once('value');
+    const v = parseFloat(snap.val()) || 0;
+    _realBalCache = v;
+    _realBalLogin = login;
+    _realBalReady = true;
+    return v;
+  } catch (e) {
+    console.warn('getRealBalance', e);
+    return _realBalCache || 0;
+  }
+}
+
+async function setRealBalance(login, value) {
+  login = login || getSessionUser();
+  if (!login) return 0;
+  value = Math.max(0, Math.floor(value));
+  const { db } = await ensureFirebase();
+  await db.ref('realBalances/' + login).set(value);
+  _realBalCache = value;
+  _realBalLogin = login;
+  _realBalReady = true;
+  renderRealBalancePill();
+  return value;
+}
+
+async function updateRealBalance(delta) {
+  const login = getSessionUser();
+  if (!login) return 0;
+  // Optimistic local update so poker can keep betting in the same hand
+  _realBalCache = Math.max(0, Math.floor((_realBalCache || 0) + delta));
+  _realBalLogin = login;
+  _realBalReady = true;
+  renderRealBalancePill();
+  try {
+    const a = document.getElementById('balance-amount');
+    if (a && document.body && document.body.innerHTML.includes('poker-multi')) {
+      a.textContent = fmtUAH(_realBalCache, true);
+    }
+  } catch (e) {}
+  try {
+    const { db } = await ensureFirebase();
+    const ref = db.ref('realBalances/' + login);
+    const result = await ref.transaction((cur) => {
+      const n = (parseFloat(cur) || 0) + delta;
+      return n < 0 ? 0 : Math.floor(n);
+    });
+    if (result && result.snapshot) {
+      _realBalCache = Math.max(0, Math.floor(parseFloat(result.snapshot.val()) || 0));
+      renderRealBalancePill();
+    }
+  } catch (e) {
+    console.warn('updateRealBalance fb', e);
+  }
+  return _realBalCache;
+}
+
+function getRealBalanceSync() {
+  if (_realBalReady && _realBalLogin === getSessionUser()) return _realBalCache;
+  return _realBalCache || 0;
+}
+
+async function pushRealHistory(login, entry) {
+  if (!login) return;
+  try {
+    const { db } = await ensureFirebase();
+    await db.ref('realHistory/' + login).push({
+      ...entry,
+      timestamp: entry.timestamp || Date.now()
+    });
+  } catch (e) {
+    console.warn('pushRealHistory', e);
+  }
+}
+
+async function getRealHistory(login, limit) {
+  login = login || getSessionUser();
+  if (!login) return [];
+  const { db } = await ensureFirebase();
+  const snap = await db.ref('realHistory/' + login).orderByChild('timestamp').limitToLast(limit || 50).once('value');
+  const items = [];
+  snap.forEach((ch) => { items.push({ key: ch.key, ...ch.val() }); });
+  items.reverse();
+  return items;
+}
+
+async function submitDepositRequest(amount) {
+  const login = getSessionUser();
+  if (!login) throw new Error('Не авторизован');
+  amount = Math.floor(parseFloat(amount));
+  if (!amount || amount <= 0) throw new Error('Неверная сумма');
+  const { db } = await ensureFirebase();
+  const ref = db.ref('pendingDeposits').push();
+  await ref.set({
+    login,
+    amount,
+    type: 'deposit',
+    status: 'pending',
+    timestamp: Date.now(),
+    name: (currentAccount() && currentAccount().name) || login
+  });
+  await pushRealHistory(login, {
+    type: 'deposit',
+    amount,
+    status: 'pending',
+    note: 'Заявка на пополнение'
+  });
+  try {
+    await notifyTelegramAdmin({
+      type: 'deposit',
+      key: ref.key,
+      login,
+      name: (currentAccount() && currentAccount().name) || login,
+      amount
+    });
+  } catch (e) {}
+  return ref.key;
+}
+
+async function approveDeposit(key) {
+  const { db } = await ensureFirebase();
+  const snap = await db.ref('pendingDeposits/' + key).once('value');
+  const d = snap.val();
+  if (!d || d.status !== 'pending') throw new Error('Заявка не найдена или уже обработана');
+  await db.ref('pendingDeposits/' + key).update({ status: 'approved', approvedAt: Date.now() });
+  const balRef = db.ref('realBalances/' + d.login);
+  await balRef.transaction((cur) => Math.floor((parseFloat(cur) || 0) + d.amount));
+  await pushRealHistory(d.login, {
+    type: 'deposit',
+    amount: d.amount,
+    status: 'approved',
+    note: 'Пополнение подтверждено'
+  });
+  if (d.login === getSessionUser()) {
+    _realBalCache = await getRealBalance(d.login);
+    renderRealBalancePill();
+  }
+  return d;
+}
+
+async function rejectDeposit(key) {
+  const { db } = await ensureFirebase();
+  const snap = await db.ref('pendingDeposits/' + key).once('value');
+  const d = snap.val();
+  await db.ref('pendingDeposits/' + key).update({ status: 'rejected', rejectedAt: Date.now() });
+  if (d && d.login) {
+    await pushRealHistory(d.login, {
+      type: 'deposit',
+      amount: d.amount || 0,
+      status: 'rejected',
+      note: 'Пополнение отклонено'
+    });
+  }
+}
+
+/** Вывод: сразу резервируем (списываем) сумму, админ переводит на карту и подтверждает */
+async function submitWithdrawRequest(amount, cardNumber) {
+  const login = getSessionUser();
+  if (!login) throw new Error('Не авторизован');
+  amount = Math.floor(parseFloat(amount));
+  if (!amount || amount <= 0) throw new Error('Неверная сумма');
+  cardNumber = String(cardNumber || '').replace(/\D/g, '');
+  if (cardNumber.length < 16) throw new Error('Введи полный номер карты (16 цифр)');
+
+  const { db } = await ensureFirebase();
+  // Читаем баланс напрямую с сервера
+  const balSnap = await db.ref('realBalances/' + login).once('value');
+  const bal = Math.floor(parseFloat(balSnap.val()) || 0);
+  _realBalCache = bal;
+  _realBalLogin = login;
+  _realBalReady = true;
+
+  if (amount > bal) {
+    throw new Error('Недостаточно средств (доступно ' + fmtUAH(bal, true) + ')');
+  }
+
+  // set после чтения — без transaction (она иногда видит null и ложно отклоняет)
+  const newBal = bal - amount;
+  await db.ref('realBalances/' + login).set(newBal);
+  _realBalCache = newBal;
+  renderRealBalancePill();
+
+  const ref = db.ref('pendingWithdrawals').push();
+  const cardFmt = cardNumber.replace(/(.{4})/g, '$1 ').trim();
+  await ref.set({
+    login,
+    amount,
+    card: cardNumber,
+    cardFmt,
+    type: 'withdraw',
+    status: 'pending',
+    timestamp: Date.now(),
+    name: (currentAccount() && currentAccount().name) || login
+  });
+  await pushRealHistory(login, {
+    type: 'withdraw',
+    amount: -amount,
+    status: 'pending',
+    card: cardFmt,
+    note: 'Заявка на вывод · ожидает перевода'
+  });
+  try {
+    await notifyTelegramAdmin({
+      type: 'withdraw',
+      key: ref.key,
+      login,
+      name: (currentAccount() && currentAccount().name) || login,
+      amount,
+      card: cardNumber,
+      cardFmt
+    });
+  } catch (e) {}
+  return ref.key;
+}
+
+async function approveWithdraw(key) {
+  const { db } = await ensureFirebase();
+  const snap = await db.ref('pendingWithdrawals/' + key).once('value');
+  const d = snap.val();
+  if (!d || d.status !== 'pending') throw new Error('Заявка не найдена или уже обработана');
+  // Сумма уже списана при подаче заявки
+  await db.ref('pendingWithdrawals/' + key).update({ status: 'approved', approvedAt: Date.now() });
+  await pushRealHistory(d.login, {
+    type: 'withdraw',
+    amount: -(d.amount || 0),
+    status: 'approved',
+    card: d.cardFmt || d.card,
+    note: 'Вывод выполнен · деньги отправлены на карту'
+  });
+  return d;
+}
+
+async function rejectWithdraw(key) {
+  const { db } = await ensureFirebase();
+  const snap = await db.ref('pendingWithdrawals/' + key).once('value');
+  const d = snap.val();
+  if (!d || d.status !== 'pending') throw new Error('Заявка не найдена или уже обработана');
+  // Возвращаем деньги на реал-баланс
+  await db.ref('realBalances/' + d.login).transaction((cur) =>
+    Math.floor((parseFloat(cur) || 0) + (d.amount || 0))
+  );
+  await db.ref('pendingWithdrawals/' + key).update({ status: 'rejected', rejectedAt: Date.now() });
+  await pushRealHistory(d.login, {
+    type: 'withdraw',
+    amount: d.amount || 0,
+    status: 'rejected',
+    card: d.cardFmt || d.card,
+    note: 'Вывод отклонён · средства возвращены'
+  });
+  if (d.login === getSessionUser()) {
+    _realBalCache = await getRealBalance(d.login);
+    renderRealBalancePill();
+  }
+  return d;
+}
+
+function renderRealBalancePill() {
+  let pill = document.getElementById('real-balance-pill');
   const topRight = document.querySelector('.topbar-right');
   if (!topRight) return;
+  if (!pill) {
+    pill = document.createElement('div');
+    pill.id = 'real-balance-pill';
+    pill.className = 'balance-pill';
+    pill.style.cssText = 'background:linear-gradient(135deg,#1a3a2a,#0d2818);border:1px solid rgba(80,200,120,.35);cursor:pointer;';
+    pill.innerHTML = `
+      <span class="chip-icon">💵</span>
+      <div class="balance-info">
+        <span class="balance-label" style="color:#7dcea0">Реал · Покер</span>
+        <span id="real-balance-amount">0,00 ₴</span>
+      </div>`;
+    const demo = topRight.querySelector('.balance-pill');
+    if (demo) topRight.insertBefore(pill, demo);
+    else topRight.appendChild(pill);
+    pill.addEventListener('click', () => {
+      const btn = document.getElementById('deposit-btn');
+      if (btn) btn.click();
+      setTimeout(() => {
+        const tab = document.querySelector('#dep-mode-tabs [data-mode="real"]');
+        if (tab) tab.click();
+      }, 50);
+    });
+  }
+  const el = document.getElementById('real-balance-amount');
+  if (el) el.textContent = fmtUAH(getRealBalanceSync(), true);
+}
+
+window.CasinoReal = {
+  ensureFirebase, getRealBalance, setRealBalance, updateRealBalance,
+  getRealBalanceSync, submitDepositRequest, approveDeposit, rejectDeposit,
+  submitWithdrawRequest, approveWithdraw, rejectWithdraw,
+  getRealHistory, pushRealHistory, renderRealBalancePill
+};
+
+function initDeposit() {
+  const topRight = document.querySelector('.topbar-right');
+  if (!topRight || document.getElementById('deposit-btn')) return;
 
   const depBtn = document.createElement('button');
   depBtn.id = 'deposit-btn';
@@ -417,70 +788,166 @@ function initDeposit() {
   overlay.className = 'modal-overlay';
   overlay.id = 'deposit-modal';
   overlay.innerHTML = `
-    <div class="modal-box">
+    <div class="modal-box" style="max-width:440px">
       <h3>💳 Пополнение счёта</h3>
-      <p style="color:var(--text-dim);font-size:13.5px;margin-top:-8px;">Выбери способ оплаты и сумму пополнения в USD</p>
+      <p style="color:var(--text-dim);font-size:13.5px;margin-top:-8px;">Демо ($) — все игры · Реал (₴) — только покер</p>
 
-      <div class="dep-method-tabs" id="dep-method-tabs">
-        <div class="dep-method-tab active" data-method="card">💳 Карта</div>
-        <div class="dep-method-tab" data-method="crypto">₿ Крипто</div>
-        <div class="dep-method-tab" data-method="bank">🏦 Банк</div>
+      <div class="dep-method-tabs" id="dep-mode-tabs" style="margin-bottom:14px">
+        <div class="dep-method-tab active" data-mode="demo">🎮 Демо $</div>
+        <div class="dep-method-tab" data-mode="real">💵 Реал ₴ (Покер)</div>
       </div>
 
-      <div id="dep-form-body">
-        <div class="dep-card-preview" id="dep-card-preview">
-          <div class="dep-card-chip"></div>
-          <div class="dep-card-num" id="dep-card-num-preview">•••• •••• •••• ••••</div>
-          <div class="dep-card-bottom">
-            <span id="dep-card-holder-preview">CARD HOLDER</span>
-            <span class="dep-card-brand">VISA</span>
-          </div>
+      <div id="dep-demo-body">
+        <div class="dep-method-tabs" id="dep-method-tabs">
+          <div class="dep-method-tab active" data-method="card">💳 Карта</div>
+          <div class="dep-method-tab" data-method="crypto">₿ Крипто</div>
+          <div class="dep-method-tab" data-method="bank">🏦 Банк</div>
         </div>
-
-        <div class="dep-field">
-          <label>Номер карты</label>
-          <input type="text" id="dep-card-number" maxlength="19" placeholder="4000 0000 0000 0000" inputmode="numeric">
-        </div>
-        <div class="dep-field-row">
-          <div class="dep-field">
-            <label>Срок действия</label>
-            <input type="text" id="dep-card-expiry" maxlength="5" placeholder="ММ/ГГ" inputmode="numeric">
+        <div id="dep-form-body">
+          <div class="dep-card-preview" id="dep-card-preview">
+            <div class="dep-card-chip"></div>
+            <div class="dep-card-num" id="dep-card-num-preview">•••• •••• •••• ••••</div>
+            <div class="dep-card-bottom">
+              <span id="dep-card-holder-preview">CARD HOLDER</span>
+              <span class="dep-card-brand">VISA</span>
+            </div>
           </div>
           <div class="dep-field">
-            <label>CVV</label>
-            <input type="text" id="dep-card-cvv" maxlength="3" placeholder="•••" inputmode="numeric">
+            <label>Номер карты</label>
+            <input type="text" id="dep-card-number" maxlength="19" placeholder="4000 0000 0000 0000" inputmode="numeric">
+          </div>
+          <div class="dep-field-row">
+            <div class="dep-field">
+              <label>Срок действия</label>
+              <input type="text" id="dep-card-expiry" maxlength="5" placeholder="ММ/ГГ" inputmode="numeric">
+            </div>
+            <div class="dep-field">
+              <label>CVV</label>
+              <input type="text" id="dep-card-cvv" maxlength="3" placeholder="•••" inputmode="numeric">
+            </div>
+          </div>
+          <p class="bet-board-label" style="margin-top:18px;">Сумма пополнения</p>
+          <div class="deposit-amounts" id="deposit-amounts">
+            <button class="deposit-amount-btn" data-amount="50">+$50</button>
+            <button class="deposit-amount-btn active" data-amount="100">+$100</button>
+            <button class="deposit-amount-btn" data-amount="250">+$250</button>
+            <button class="deposit-amount-btn" data-amount="500">+$500</button>
+            <button class="deposit-amount-btn" data-amount="1000">+$1,000</button>
+            <button class="deposit-amount-btn" data-amount="2500">+$2,500</button>
+          </div>
+          <div class="deposit-custom">
+            <input type="number" id="deposit-custom-input" placeholder="Своя сумма, $" min="1" step="1">
+            <button id="deposit-custom-btn">Указать</button>
+          </div>
+          <button class="dep-pay-btn" id="dep-pay-btn">Оплатить <span id="dep-pay-amount">$100.00</span></button>
+          <div class="deposit-secure-row">🔒 Шифрование соединения 256-bit SSL</div>
+          <p class="deposit-note">Демо-баланс виртуальный. Для покера на реальные деньги используй вкладку «Реал (Покер)».</p>
+        </div>
+        <div class="dep-processing" id="dep-processing">
+          <div class="dep-spinner"></div>
+          <p>Обработка платежа через защищённый шлюз...</p>
+        </div>
+        <div class="dep-success" id="dep-success">
+          <div class="check">✓</div>
+          <p style="color:var(--text-dim);margin:0;">Платёж успешно проведён</p>
+          <div class="amt" id="dep-success-amt">+$100.00</div>
+        </div>
+      </div>
+
+      <div id="dep-real-body" class="real-money-panel" style="display:none">
+        <div class="real-vip-banner">
+          <span class="real-vip-icon">💎</span>
+          <div>
+            <div class="real-vip-title">VIP Cash Desk</div>
+            <div class="real-vip-sub">Реальные гривны · только покер-столы</div>
+          </div>
+        </div>
+        <div class="dep-method-tabs real-sub-tabs" id="real-sub-tabs">
+          <div class="dep-method-tab real-tab active" data-real-tab="in"><span>⬇️</span> Пополнить</div>
+          <div class="dep-method-tab real-tab" data-real-tab="out"><span>⬆️</span> Вывести</div>
+          <div class="dep-method-tab real-tab" data-real-tab="hist"><span>📜</span> История</div>
+        </div>
+
+        <div id="real-tab-in" class="real-tab-pane">
+          <div class="real-card-hero" id="real-card-hero">
+            <div class="real-card-shine"></div>
+            <div class="real-card-top">
+              <span class="real-card-chip"></span>
+              <span class="real-card-badge">UAH · PRIVAT</span>
+            </div>
+            <div class="real-card-label">Переведи на карту</div>
+            <div id="real-card-num" class="real-card-number" title="Нажми чтобы скопировать">${REAL_CARD}</div>
+            <div class="real-card-actions">
+              <button type="button" id="copy-card-btn" class="real-copy-btn">📋 Скопировать номер</button>
+              <span class="real-card-hint">затем нажми «Я оплатил»</span>
+            </div>
+          </div>
+          <p class="bet-board-label real-section-label">Сумма пополнения</p>
+          <div class="deposit-amounts real-amounts" id="real-deposit-amounts">
+            <button class="deposit-amount-btn real-chip-btn" data-amount="200">+200 ₴</button>
+            <button class="deposit-amount-btn real-chip-btn active" data-amount="500">+500 ₴</button>
+            <button class="deposit-amount-btn real-chip-btn" data-amount="1000">+1 000 ₴</button>
+            <button class="deposit-amount-btn real-chip-btn" data-amount="2000">+2 000 ₴</button>
+            <button class="deposit-amount-btn real-chip-btn" data-amount="5000">+5 000 ₴</button>
+          </div>
+          <div class="deposit-custom real-custom">
+            <input type="number" id="real-deposit-custom-input" placeholder="Своя сумма, грн" min="1" step="1">
+            <button id="real-deposit-custom-btn">Указать</button>
+          </div>
+          <button class="dep-pay-btn real-pay-in" id="real-pay-btn">✓ Я оплатил · <span id="real-pay-amount">500,00 ₴</span></button>
+          <p class="deposit-note real-note">Заявка уходит админу. После проверки гривны появятся в «Реал · Покер».</p>
+          <div class="dep-processing real-proc" id="real-processing" style="display:none">
+            <div class="dep-spinner real-spinner"></div>
+            <p>Отправка заявки в кассу...</p>
+          </div>
+          <div class="dep-success real-succ" id="real-success" style="display:none">
+            <div class="check real-check">✓</div>
+            <p class="real-succ-title">Заявка принята</p>
+            <div class="amt" id="real-success-amt">+500,00 ₴</div>
+            <p class="real-succ-sub">Ожидай подтверждения администратора</p>
           </div>
         </div>
 
-        <p class="bet-board-label" style="margin-top:18px;">Сумма пополнения</p>
-        <div class="deposit-amounts" id="deposit-amounts">
-          <button class="deposit-amount-btn" data-amount="50">+$50</button>
-          <button class="deposit-amount-btn active" data-amount="100">+$100</button>
-          <button class="deposit-amount-btn" data-amount="250">+$250</button>
-          <button class="deposit-amount-btn" data-amount="500">+$500</button>
-          <button class="deposit-amount-btn" data-amount="1000">+$1,000</button>
-          <button class="deposit-amount-btn" data-amount="2500">+$2,500</button>
+        <div id="real-tab-out" class="real-tab-pane" style="display:none">
+          <div class="real-available-box">
+            <span class="real-available-label">Доступно к выводу</span>
+            <b id="real-wd-available" class="real-available-val">0,00 ₴</b>
+          </div>
+          <div class="dep-field real-field">
+            <label>Номер карты для получения</label>
+            <input type="text" id="real-wd-card" maxlength="19" placeholder="ACCT-000003" inputmode="numeric" autocomplete="cc-number">
+          </div>
+          <p class="bet-board-label real-section-label">Сумма вывода</p>
+          <div class="deposit-amounts real-amounts" id="real-wd-amounts">
+            <button class="deposit-amount-btn real-chip-btn real-chip-out" data-amount="200">200 ₴</button>
+            <button class="deposit-amount-btn real-chip-btn real-chip-out active" data-amount="500">500 ₴</button>
+            <button class="deposit-amount-btn real-chip-btn real-chip-out" data-amount="1000">1 000 ₴</button>
+            <button class="deposit-amount-btn real-chip-btn real-chip-out" data-amount="2000">2 000 ₴</button>
+            <button class="deposit-amount-btn real-chip-btn real-chip-out" data-amount="5000">5 000 ₴</button>
+          </div>
+          <div class="deposit-custom real-custom">
+            <input type="number" id="real-wd-custom-input" placeholder="Своя сумма, грн" min="1" step="1">
+            <button id="real-wd-custom-btn">Указать</button>
+          </div>
+          <button class="dep-pay-btn real-pay-out" id="real-wd-btn">↑ Заявка на вывод · <span id="real-wd-amount">500,00 ₴</span></button>
+          <p class="deposit-note real-note">Сумма резервируется сразу. После перевода на карту админ подтвердит заявку.</p>
+          <div class="dep-processing real-proc" id="real-wd-processing" style="display:none">
+            <div class="dep-spinner real-spinner"></div>
+            <p>Резервируем средства...</p>
+          </div>
+          <div class="dep-success real-succ" id="real-wd-success" style="display:none">
+            <div class="check real-check real-check-out">↑</div>
+            <p class="real-succ-title">Заявка на вывод создана</p>
+            <div class="amt real-amt-out" id="real-wd-success-amt">500,00 ₴</div>
+            <p class="real-succ-sub">Ожидай перевод на указанную карту</p>
+          </div>
         </div>
-        <div class="deposit-custom">
-          <input type="number" id="deposit-custom-input" placeholder="Своя сумма, $" min="1" step="1">
-          <button id="deposit-custom-btn">Указать</button>
+
+        <div id="real-tab-hist" class="real-tab-pane" style="display:none">
+          <div id="real-history-list" class="real-history-list">
+            <p class="real-hist-empty">Загрузка...</p>
+          </div>
         </div>
-
-        <button class="dep-pay-btn" id="dep-pay-btn">Оплатить <span id="dep-pay-amount">$100.00</span></button>
-
-        <div class="deposit-secure-row">🔒 Шифрование соединения 256-bit SSL</div>
-        <p class="deposit-note">Это демонстрационная платформа «Аграрка Элит Казино». Реальные платёжные данные не передаются и не сохраняются, средства виртуальны и не имеют денежной ценности.</p>
-      </div>
-
-      <div class="dep-processing" id="dep-processing">
-        <div class="dep-spinner"></div>
-        <p>Обработка платежа через защищённый шлюз...</p>
-      </div>
-
-      <div class="dep-success" id="dep-success">
-        <div class="check">✓</div>
-        <p style="color:var(--text-dim);margin:0;">Платёж успешно проведён</p>
-        <div class="amt" id="dep-success-amt">+$100.00</div>
       </div>
 
       <button class="modal-close" id="deposit-close">Закрыть</button>
@@ -489,7 +956,9 @@ function initDeposit() {
   document.body.appendChild(overlay);
 
   let selectedAmount = 100;
+  let realAmount = 500;
   let selectedMethod = 'card';
+  let mode = 'demo';
 
   const cardNumInput = overlay.querySelector('#dep-card-number');
   const cardExpiryInput = overlay.querySelector('#dep-card-expiry');
@@ -501,13 +970,19 @@ function initDeposit() {
   const formBody = overlay.querySelector('#dep-form-body');
   const processingBox = overlay.querySelector('#dep-processing');
   const successBox = overlay.querySelector('#dep-success');
+  const demoBody = overlay.querySelector('#dep-demo-body');
+  const realBody = overlay.querySelector('#dep-real-body');
 
   function refreshPayLabel() {
     payAmountEl.textContent = fmtMoney(selectedAmount, true);
   }
+  function refreshRealLabel() {
+    const el = overlay.querySelector('#real-pay-amount');
+    if (el) el.textContent = fmtUAH(realAmount, true);
+  }
   refreshPayLabel();
+  refreshRealLabel();
 
-  // card number live formatting
   cardNumInput.addEventListener('input', () => {
     let digits = cardNumInput.value.replace(/\D/g, '').slice(0, 16);
     cardNumInput.value = digits.replace(/(.{4})/g, '$1 ').trim();
@@ -524,76 +999,475 @@ function initDeposit() {
     cardCvvInput.value = cardCvvInput.value.replace(/\D/g, '').slice(0, 3);
   });
 
-  // method tabs
-  overlay.querySelectorAll('.dep-method-tab').forEach((tab) => {
+  overlay.querySelectorAll('#dep-method-tabs .dep-method-tab').forEach((tab) => {
     tab.addEventListener('click', () => {
-      overlay.querySelectorAll('.dep-method-tab').forEach((t) => t.classList.remove('active'));
+      overlay.querySelectorAll('#dep-method-tabs .dep-method-tab').forEach((t) => t.classList.remove('active'));
       tab.classList.add('active');
       selectedMethod = tab.dataset.method;
       const cardFields = [cardNumInput.parentElement, cardExpiryInput.parentElement.parentElement, overlay.querySelector('#dep-card-preview')];
       const showCard = selectedMethod === 'card';
       cardFields.forEach((el) => (el.style.display = showCard ? '' : 'none'));
-      if (!showCard) {
-        cardHolderPreview.textContent = selectedMethod === 'crypto' ? 'BTC / USDT WALLET' : 'BANK TRANSFER';
-      } else {
-        cardHolderPreview.textContent = 'CARD HOLDER';
-      }
+      cardHolderPreview.textContent = selectedMethod === 'crypto' ? 'BTC / USDT WALLET' : (selectedMethod === 'bank' ? 'BANK TRANSFER' : 'CARD HOLDER');
     });
   });
 
-  function openModal() { overlay.classList.add('open'); showStep('form'); }
+  overlay.querySelectorAll('#dep-mode-tabs .dep-method-tab').forEach((tab) => {
+    tab.addEventListener('click', () => {
+      overlay.querySelectorAll('#dep-mode-tabs .dep-method-tab').forEach((t) => t.classList.remove('active'));
+      tab.classList.add('active');
+      mode = tab.dataset.mode;
+      demoBody.style.display = mode === 'demo' ? '' : 'none';
+      realBody.style.display = mode === 'real' ? '' : 'none';
+      showDemoStep('form');
+      showRealStep('form');
+    });
+  });
+
+  function openModal() { overlay.classList.add('open'); showDemoStep('form'); showRealStep('form'); }
   function closeModal() { overlay.classList.remove('open'); }
-  function showStep(step) {
+  function showDemoStep(step) {
     formBody.style.display = step === 'form' ? '' : 'none';
-    overlay.querySelector('#dep-method-tabs').style.display = step === 'form' ? '' : 'none';
+    const mt = overlay.querySelector('#dep-method-tabs');
+    if (mt) mt.style.display = step === 'form' ? '' : 'none';
     processingBox.classList.toggle('show', step === 'processing');
     successBox.classList.toggle('show', step === 'success');
   }
+  function showRealStep(step) {
+    const tabIn = overlay.querySelector('#real-tab-in');
+    if (!tabIn || tabIn.style.display === 'none') return;
+    const formEls = [
+      overlay.querySelector('#real-deposit-amounts'),
+      overlay.querySelector('#real-deposit-custom-input')?.parentElement,
+      overlay.querySelector('#real-pay-btn'),
+      tabIn.querySelector('.deposit-note'),
+      tabIn.querySelector('div')
+    ];
+    const showForm = step === 'form';
+    formEls.forEach((el) => { if (el) el.style.display = showForm ? '' : 'none'; });
+    const proc = overlay.querySelector('#real-processing');
+    const succ = overlay.querySelector('#real-success');
+    if (proc) proc.style.display = step === 'processing' ? '' : 'none';
+    if (succ) {
+      succ.style.display = step === 'success' ? '' : 'none';
+      succ.classList.toggle('show', step === 'success');
+    }
+  }
 
-  depBtn.addEventListener('click', openModal);
+  function showWdStep(step) {
+    const tab = overlay.querySelector('#real-tab-out');
+    if (!tab) return;
+    const formEls = [
+      overlay.querySelector('#real-wd-available')?.parentElement,
+      overlay.querySelector('#real-wd-card')?.parentElement,
+      overlay.querySelector('#real-wd-amounts'),
+      overlay.querySelector('#real-wd-custom-input')?.parentElement,
+      overlay.querySelector('#real-wd-btn'),
+      tab.querySelector('.deposit-note')
+    ];
+    const showForm = step === 'form';
+    formEls.forEach((el) => { if (el) el.style.display = showForm ? '' : 'none'; });
+    const proc = overlay.querySelector('#real-wd-processing');
+    const succ = overlay.querySelector('#real-wd-success');
+    if (proc) proc.style.display = step === 'processing' ? '' : 'none';
+    if (succ) succ.style.display = step === 'success' ? '' : 'none';
+  }
+
+  let wdAmount = 500;
+
+  function refreshWdLabel() {
+    const el = overlay.querySelector('#real-wd-amount');
+    if (el) el.textContent = fmtUAH(wdAmount, true);
+  }
+  refreshWdLabel();
+
+  async function refreshWdAvailable() {
+    const el = overlay.querySelector('#real-wd-available');
+    if (!el) return;
+    try {
+      const v = await getRealBalance();
+      el.textContent = fmtUAH(v, true);
+    } catch (e) {
+      el.textContent = fmtUAH(getRealBalanceSync(), true);
+    }
+  }
+
+  async function loadRealHistory() {
+    const box = overlay.querySelector('#real-history-list');
+    if (!box) return;
+    box.innerHTML = '<p class="real-hist-empty">Загрузка...</p>';
+    try {
+      const items = await getRealHistory(null, 40);
+      if (!items.length) {
+        box.innerHTML = '<p class="real-hist-empty">История пуста</p>';
+        return;
+      }
+      box.innerHTML = items.map((h) => {
+        const isDep = h.type === 'deposit';
+        const stClass = h.status === 'pending' ? 'pending' : (h.status === 'approved' ? 'ok' : 'bad');
+        const st = h.status === 'pending' ? '⏳ Ожидает' : (h.status === 'approved' ? '✅ Готово' : (h.status === 'rejected' ? '❌ Отклонено' : ''));
+        const sign = isDep ? '+' : '−';
+        const amt = Math.abs(Number(h.amount) || 0);
+        const dt = h.timestamp ? new Date(h.timestamp).toLocaleString('ru-RU') : '';
+        const card = h.card ? `<div class="rh-card">💳 ${h.card}</div>` : '';
+        return `<div class="rh-item ${isDep ? 'rh-in' : 'rh-out'} status-${stClass}">
+          <div class="rh-top">
+            <div class="rh-type">${isDep ? '⬇️ Пополнение' : '⬆️ Вывод'} <span class="rh-st">${st}</span></div>
+            <div class="rh-amt">${sign}${fmtUAH(amt, true)}</div>
+          </div>
+          <div class="rh-date">${dt}</div>
+          ${h.note ? `<div class="rh-note">${h.note}</div>` : ''}
+          ${card}
+        </div>`;
+      }).join('');
+    } catch (e) {
+      box.innerHTML = '<p class="real-hist-empty" style="color:#f66">Ошибка загрузки истории</p>';
+    }
+  }
+
+  function switchRealTab(name) {
+    overlay.querySelectorAll('#real-sub-tabs .dep-method-tab').forEach((t) => {
+      t.classList.toggle('active', t.dataset.realTab === name);
+    });
+    const tin = overlay.querySelector('#real-tab-in');
+    const tout = overlay.querySelector('#real-tab-out');
+    const thist = overlay.querySelector('#real-tab-hist');
+    if (tin) tin.style.display = name === 'in' ? '' : 'none';
+    if (tout) tout.style.display = name === 'out' ? '' : 'none';
+    if (thist) thist.style.display = name === 'hist' ? '' : 'none';
+    showRealStep('form');
+    showWdStep('form');
+    if (name === 'out') refreshWdAvailable();
+    if (name === 'hist') loadRealHistory();
+  }
+
+  overlay.querySelectorAll('#real-sub-tabs .dep-method-tab').forEach((tab) => {
+    tab.addEventListener('click', () => switchRealTab(tab.dataset.realTab));
+  });
+
+  depBtn.addEventListener('click', () => {
+    if (!requireAuth('⚠️ Войди, чтобы пополнить баланс')) return;
+    openModal();
+    refreshWdAvailable();
+  });
   overlay.querySelector('#deposit-close').addEventListener('click', closeModal);
   overlay.addEventListener('click', (e) => { if (e.target === overlay) closeModal(); });
 
-  overlay.querySelectorAll('.deposit-amount-btn').forEach((b) => {
+  overlay.querySelectorAll('#deposit-amounts .deposit-amount-btn').forEach((b) => {
     b.addEventListener('click', () => {
-      overlay.querySelectorAll('.deposit-amount-btn').forEach((x) => x.classList.remove('active'));
+      overlay.querySelectorAll('#deposit-amounts .deposit-amount-btn').forEach((x) => x.classList.remove('active'));
       b.classList.add('active');
       selectedAmount = parseInt(b.dataset.amount);
       refreshPayLabel();
     });
   });
-
   const customInput = overlay.querySelector('#deposit-custom-input');
   overlay.querySelector('#deposit-custom-btn').addEventListener('click', () => {
     const val = Math.floor(parseFloat(customInput.value));
-    if (!val || val <= 0) {
-      customInput.focus();
-      return;
-    }
-    overlay.querySelectorAll('.deposit-amount-btn').forEach((x) => x.classList.remove('active'));
+    if (!val || val <= 0) { customInput.focus(); return; }
+    overlay.querySelectorAll('#deposit-amounts .deposit-amount-btn').forEach((x) => x.classList.remove('active'));
     selectedAmount = val;
     refreshPayLabel();
   });
 
   payBtn.addEventListener('click', () => {
     payBtn.disabled = true;
-    showStep('processing');
+    showDemoStep('processing');
     setTimeout(() => {
       updateBalance(selectedAmount);
-      try { pushTx('deposit', selectedAmount, 'card'); } catch(e) {}
-      try { recordDeposit(selectedAmount); } catch(e) {}
-      try { unlockAchievement('deposit'); } catch(e) {}
+      try { pushTx('deposit', selectedAmount, 'card'); } catch (e) {}
+      try { recordDeposit(selectedAmount); } catch (e) {}
+      try { unlockAchievement('deposit'); } catch (e) {}
       overlay.querySelector('#dep-success-amt').textContent = '+' + fmtMoney(selectedAmount, true);
-      showStep('success');
-      showToast(`💳 Баланс пополнен на ${fmtMoney(selectedAmount, true)}`);
+      showDemoStep('success');
+      showToast(`💳 Демо-баланс +${fmtMoney(selectedAmount, true)}`);
       payBtn.disabled = false;
-      setTimeout(() => {
-        closeModal();
-        showStep('form');
-      }, 1600);
+      setTimeout(() => { closeModal(); showDemoStep('form'); }, 1600);
     }, 1500);
   });
+
+  // Real deposit
+  overlay.querySelectorAll('#real-deposit-amounts .deposit-amount-btn').forEach((b) => {
+    b.addEventListener('click', () => {
+      overlay.querySelectorAll('#real-deposit-amounts .deposit-amount-btn').forEach((x) => x.classList.remove('active'));
+      b.classList.add('active');
+      realAmount = parseInt(b.dataset.amount);
+      refreshRealLabel();
+    });
+  });
+  const realCustom = overlay.querySelector('#real-deposit-custom-input');
+  overlay.querySelector('#real-deposit-custom-btn').addEventListener('click', () => {
+    const val = Math.floor(parseFloat(realCustom.value));
+    if (!val || val <= 0) { realCustom.focus(); return; }
+    overlay.querySelectorAll('#real-deposit-amounts .deposit-amount-btn').forEach((x) => x.classList.remove('active'));
+    realAmount = val;
+    refreshRealLabel();
+  });
+
+  overlay.querySelector('#copy-card-btn').addEventListener('click', async () => {
+    const num = REAL_CARD.replace(/\s/g, '');
+    try {
+      await navigator.clipboard.writeText(num);
+      showToast('📋 Номер карты скопирован');
+    } catch (e) {
+      showToast(REAL_CARD);
+    }
+  });
+  overlay.querySelector('#real-card-num').addEventListener('click', () => {
+    overlay.querySelector('#copy-card-btn').click();
+  });
+
+  overlay.querySelector('#real-pay-btn').addEventListener('click', async () => {
+    const btn = overlay.querySelector('#real-pay-btn');
+    btn.disabled = true;
+    showRealStep('processing');
+    try {
+      await submitDepositRequest(realAmount);
+      overlay.querySelector('#real-success-amt').textContent = '+' + fmtUAH(realAmount, true);
+      showRealStep('success');
+      showToast('📩 Заявка на ' + fmtUAH(realAmount, true) + ' отправлена — жди подтверждения');
+      setTimeout(() => { closeModal(); showRealStep('form'); }, 2200);
+    } catch (e) {
+      showToast('❌ ' + (e.message || 'Ошибка отправки'));
+      showRealStep('form');
+    }
+    btn.disabled = false;
+  });
+
+  // Real withdraw
+  const wdCardInput = overlay.querySelector('#real-wd-card');
+  if (wdCardInput) {
+    wdCardInput.addEventListener('input', () => {
+      let digits = wdCardInput.value.replace(/\D/g, '').slice(0, 16);
+      wdCardInput.value = digits.replace(/(.{4})/g, '$1 ').trim();
+    });
+  }
+  overlay.querySelectorAll('#real-wd-amounts .deposit-amount-btn').forEach((b) => {
+    b.addEventListener('click', () => {
+      overlay.querySelectorAll('#real-wd-amounts .deposit-amount-btn').forEach((x) => x.classList.remove('active'));
+      b.classList.add('active');
+      wdAmount = parseInt(b.dataset.amount);
+      refreshWdLabel();
+    });
+  });
+  const wdCustom = overlay.querySelector('#real-wd-custom-input');
+  overlay.querySelector('#real-wd-custom-btn')?.addEventListener('click', () => {
+    const val = Math.floor(parseFloat(wdCustom.value));
+    if (!val || val <= 0) { wdCustom.focus(); return; }
+    overlay.querySelectorAll('#real-wd-amounts .deposit-amount-btn').forEach((x) => x.classList.remove('active'));
+    wdAmount = val;
+    refreshWdLabel();
+  });
+
+  overlay.querySelector('#real-wd-btn')?.addEventListener('click', async () => {
+    const btn = overlay.querySelector('#real-wd-btn');
+    const card = (overlay.querySelector('#real-wd-card')?.value || '');
+    btn.disabled = true;
+    showWdStep('processing');
+    try {
+      await submitWithdrawRequest(wdAmount, card);
+      overlay.querySelector('#real-wd-success-amt').textContent = fmtUAH(wdAmount, true);
+      showWdStep('success');
+      showToast('📩 Заявка на вывод ' + fmtUAH(wdAmount, true) + ' отправлена');
+      refreshWdAvailable();
+      setTimeout(() => { closeModal(); showWdStep('form'); }, 2200);
+    } catch (e) {
+      showToast('❌ ' + (e.message || 'Ошибка'));
+      showWdStep('form');
+    }
+    btn.disabled = false;
+  });
 }
+
+function initAdminDeposits() {
+  if (window.__adminDepInited) return;
+  window.__adminDepInited = true;
+
+  let clicks = 0;
+  let timer = null;
+
+  // 1) 5 быстрых кликов по логотипу (блокируем переход по ссылке)
+  document.addEventListener('click', (e) => {
+    const logo = e.target.closest && e.target.closest('.logo, a.logo, .topbar .logo');
+    if (!logo) return;
+    clicks++;
+    clearTimeout(timer);
+    timer = setTimeout(() => { clicks = 0; }, 1500);
+    if (clicks >= 5) {
+      e.preventDefault();
+      e.stopPropagation();
+      clicks = 0;
+      openAdminPanel();
+    }
+  }, true);
+
+  // 2) Горячая клавиша: Ctrl + Shift + A
+  document.addEventListener('keydown', (e) => {
+    if (e.ctrlKey && e.shiftKey && (e.key === 'A' || e.key === 'a' || e.code === 'KeyA')) {
+      e.preventDefault();
+      openAdminPanel();
+    }
+  });
+
+  // 3) Секретный URL: добавь #admin в адрес и обнови страницу
+  if (location.hash === '#admin') {
+    setTimeout(() => openAdminPanel(), 400);
+  }
+}
+
+function openAdminPanel() {
+  const pass = prompt('Админ-пароль:');
+  if (pass !== ADMIN_PASS) {
+    if (pass != null) {
+      try { showToast('❌ Неверный пароль'); } catch (e) { alert('Неверный пароль'); }
+    }
+    return;
+  }
+  showDepositAdminPanel();
+}
+
+async function showDepositAdminPanel() {
+  let modal = document.getElementById('admin-dep-modal');
+  if (modal) modal.remove();
+  modal = document.createElement('div');
+  modal.id = 'admin-dep-modal';
+  modal.className = 'modal-overlay open';
+  modal.innerHTML = `
+    <div class="modal-box" style="max-width:560px">
+      <h3>🛠 Админ · Заявки реал</h3>
+      <div class="dep-method-tabs" id="admin-tabs" style="margin:10px 0 14px">
+        <div class="dep-method-tab active" data-admin-tab="dep">⬇️ Пополнения</div>
+        <div class="dep-method-tab" data-admin-tab="wd">⬆️ Выводы</div>
+      </div>
+      <div id="admin-dep-list" style="max-height:380px;overflow:auto;margin:0 0 12px">
+        <p style="color:var(--text-dim)">Загрузка...</p>
+      </div>
+      <button class="modal-close" id="admin-dep-close">Закрыть</button>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.querySelector('#admin-dep-close').onclick = () => modal.remove();
+  modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+
+  let adminTab = 'dep';
+
+  async function renderAdminList() {
+    const list = modal.querySelector('#admin-dep-list');
+    list.innerHTML = '<p style="color:var(--text-dim)">Загрузка...</p>';
+    try {
+      const { db } = await ensureFirebase();
+      const path = adminTab === 'dep' ? 'pendingDeposits' : 'pendingWithdrawals';
+      const snap = await db.ref(path).orderByChild('timestamp').once('value');
+      const items = [];
+      snap.forEach((ch) => { items.push({ key: ch.key, ...ch.val() }); });
+      items.reverse();
+      if (!items.length) {
+        list.innerHTML = '<p style="color:var(--text-dim)">Заявок нет</p>';
+        return;
+      }
+      list.innerHTML = items.map((d) => {
+        const st = d.status === 'pending' ? '⏳' : (d.status === 'approved' ? '✅' : '❌');
+        const dt = d.timestamp ? new Date(d.timestamp).toLocaleString('ru-RU') : '';
+        const cardLine = d.cardFmt || d.card
+          ? `<div style="font-size:13px;margin:6px 0;padding:8px 10px;background:rgba(0,0,0,.25);border-radius:8px;font-family:ui-monospace,monospace;letter-spacing:1px;cursor:pointer" data-copy-card="${(d.card || '').replace(/\s/g, '')}">💳 ${d.cardFmt || d.card} <span style="font-size:11px;opacity:.6">(копировать)</span></div>`
+          : '';
+        const actions = d.status === 'pending'
+          ? (adminTab === 'dep'
+            ? `<button data-approve-dep="${d.key}" class="dep-pay-btn" style="padding:6px 12px;font-size:12px;margin-right:6px">Подтвердить</button>
+               <button data-reject-dep="${d.key}" class="secondary-btn" style="padding:6px 12px;font-size:12px">Отклонить</button>`
+            : `<button data-approve-wd="${d.key}" class="dep-pay-btn" style="padding:6px 12px;font-size:12px;margin-right:6px;background:linear-gradient(135deg,#8a5a1a,#5c3a0d)">Я перевёл · Подтвердить</button>
+               <button data-reject-wd="${d.key}" class="secondary-btn" style="padding:6px 12px;font-size:12px">Отклонить (вернуть)</button>`)
+          : `<span style="font-size:12px;color:var(--text-dim)">${d.status}</span>`;
+        return `<div style="border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:12px;margin-bottom:10px;background:rgba(0,0,0,.2)">
+          <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap">
+            <div><b>${st} ${d.name || d.login}</b> <span style="color:var(--text-dim);font-size:12px">@${d.login}</span></div>
+            <div style="font-weight:700;color:${adminTab === 'dep' ? '#7dcea0' : '#e8b84a'}">${fmtUAH(d.amount, true)}</div>
+          </div>
+          ${cardLine}
+          <div style="font-size:11px;color:var(--text-dim);margin:6px 0 10px">${dt}</div>
+          <div>${actions}</div>
+        </div>`;
+      }).join('');
+
+      list.querySelectorAll('[data-copy-card]').forEach((el) => {
+        el.onclick = async () => {
+          try {
+            await navigator.clipboard.writeText(el.dataset.copyCard);
+            showToast('📋 Карта скопирована');
+          } catch (e) {
+            showToast(el.dataset.copyCard);
+          }
+        };
+      });
+      list.querySelectorAll('[data-approve-dep]').forEach((btn) => {
+        btn.onclick = async () => {
+          btn.disabled = true;
+          try {
+            await approveDeposit(btn.dataset.approveDep);
+            showToast('✅ Пополнение начислено');
+            renderAdminList();
+          } catch (e) {
+            showToast('❌ ' + e.message);
+            btn.disabled = false;
+          }
+        };
+      });
+      list.querySelectorAll('[data-reject-dep]').forEach((btn) => {
+        btn.onclick = async () => {
+          btn.disabled = true;
+          try {
+            await rejectDeposit(btn.dataset.rejectDep);
+            showToast('Отклонено');
+            renderAdminList();
+          } catch (e) {
+            showToast('❌ ' + e.message);
+            btn.disabled = false;
+          }
+        };
+      });
+      list.querySelectorAll('[data-approve-wd]').forEach((btn) => {
+        btn.onclick = async () => {
+          btn.disabled = true;
+          try {
+            await approveWithdraw(btn.dataset.approveWd);
+            showToast('✅ Вывод подтверждён');
+            renderAdminList();
+          } catch (e) {
+            showToast('❌ ' + e.message);
+            btn.disabled = false;
+          }
+        };
+      });
+      list.querySelectorAll('[data-reject-wd]').forEach((btn) => {
+        btn.onclick = async () => {
+          btn.disabled = true;
+          try {
+            await rejectWithdraw(btn.dataset.rejectWd);
+            showToast('Вывод отклонён, средства возвращены');
+            renderAdminList();
+          } catch (e) {
+            showToast('❌ ' + e.message);
+            btn.disabled = false;
+          }
+        };
+      });
+    } catch (e) {
+      list.innerHTML = '<p style="color:#f66">Ошибка: ' + e.message + '</p>';
+    }
+  }
+
+  modal.querySelectorAll('#admin-tabs .dep-method-tab').forEach((tab) => {
+    tab.addEventListener('click', () => {
+      modal.querySelectorAll('#admin-tabs .dep-method-tab').forEach((t) => t.classList.remove('active'));
+      tab.classList.add('active');
+      adminTab = tab.dataset.adminTab;
+      renderAdminList();
+    });
+  });
+
+  renderAdminList();
+}
+
+window.openAdminPanel = openAdminPanel;
+window.showDepositAdminPanel = showDepositAdminPanel;
 
 // ---------- Ticker (fake live wins) ----------
 function initTicker() {
@@ -620,6 +1494,14 @@ document.addEventListener('DOMContentLoaded', () => {
   initTicker();
   initMemeSystem();
   try { installAuthGates(); } catch(e) {}
+  try { initAdminDeposits(); } catch(e) {}
+  try {
+    if (getSessionUser()) {
+      getRealBalance().then(() => renderRealBalancePill()).catch(() => renderRealBalancePill());
+    } else {
+      renderRealBalancePill();
+    }
+  } catch(e) {}
 });
 
 
