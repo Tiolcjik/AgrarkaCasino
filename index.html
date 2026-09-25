@@ -120,10 +120,9 @@
 
   <div class="hero-cta-row">
     <a href="#games" class="play-btn hero-cta">Выбрать стол →</a>
+    <a href="#online" class="play-btn hero-cta" style="background:linear-gradient(135deg,#2a1a5e,#1a3a6e)">Онлайн с друзьями →</a>
     <button class="secondary-btn hero-cta-ghost" id="achievements-btn">🏆 Ачивки</button>
     <button class="secondary-btn hero-cta-ghost" id="cabinet-open-hero">👤 Кабинет</button>
-    <button class="secondary-btn hero-cta-ghost" id="create-poker-btn">🃏 Создать покер-стол</button>
-    <button class="secondary-btn hero-cta-ghost" id="join-poker-btn">🔗 Войти по коду</button>
   </div>
   <p style="margin-top:18px;font-size:12px;color:var(--text-dimmer);opacity:0.85;">
     💡 Секрет: Konami-код · промо <b style="color:var(--gold-bright)">SHOCK</b> · Neural Edge в слотах · 🐋 Whale Alerts
@@ -146,6 +145,58 @@
   <div class="live-feed-title"><span class="dot"></span> LIVE FEED</div>
   <div class="live-feed-list" id="live-feed-list"></div>
 </aside>
+
+
+<!-- ========== ОНЛАЙН ИГРЫ ========== -->
+<section class="online-section" id="online">
+  <div class="online-head">
+    <div class="online-badge">LIVE · MULTI</div>
+    <h2 class="section-title online-title">Онлайн-игры</h2>
+    <p class="section-sub">С друзьями за одним столом · реал-баланс ₴ · комнаты по коду</p>
+  </div>
+
+  <div class="online-grid">
+    <article class="online-card online-card-poker">
+      <div class="online-card-glow"></div>
+      <div class="online-card-top">
+        <span class="online-card-icon">♠️</span>
+        <div>
+          <h3>Покер Omaha</h3>
+          <p class="online-card-tag">6 max · реальные ₴ · общий банк</p>
+        </div>
+      </div>
+      <p class="online-card-desc">Классический стол с друзьями. Создай комнату или зайди по коду — ставки с реал-баланса.</p>
+      <div class="online-card-actions">
+        <button type="button" class="online-btn online-btn-primary" id="create-poker-btn">✨ Создать стол</button>
+        <button type="button" class="online-btn online-btn-ghost" id="join-poker-btn">🔗 Войти по коду</button>
+      </div>
+      <div class="online-card-meta">
+        <span>2–6 игроков</span>
+        <span>Реал ₴</span>
+      </div>
+    </article>
+
+    <article class="online-card online-card-durak">
+      <div class="online-card-glow"></div>
+      <div class="online-card-top">
+        <span class="online-card-icon">🃏</span>
+        <div>
+          <h3>Дурак</h3>
+          <p class="online-card-tag">Подкидной · ставка в банк · реванш</p>
+        </div>
+      </div>
+      <p class="online-card-desc">Выбери ставку, все жмут «Готов» — банк собирается. Последний с картами — дурак, победитель забирает банк.</p>
+      <div class="online-card-actions">
+        <button type="button" class="online-btn online-btn-primary" id="create-durak-btn">✨ Создать стол</button>
+        <button type="button" class="online-btn online-btn-ghost" id="join-durak-btn">🔗 Войти по коду</button>
+      </div>
+      <div class="online-card-meta">
+        <span>2–6 игроков</span>
+        <span>от 1 ₴</span>
+      </div>
+    </article>
+  </div>
+</section>
 
 <h2 class="section-title" id="games">Выбери свой стол</h2>
 <p class="section-sub">12 столов · джекпоты · своя ставка · ачивки</p>
@@ -469,6 +520,64 @@
   // Вешаем кнопки
   document.getElementById('create-poker-btn')?.addEventListener('click', createPokerRoom);
   document.getElementById('join-poker-btn')?.addEventListener('click', joinPokerRoom);
+
+  async function createDurakRoom() {
+    try {
+      if (typeof requireAuth === 'function' && !requireAuth('⚠️ Войди, чтобы играть в Дурака')) return;
+      const chips = await getPokerChips();
+      if (chips < 1) {
+        alert('На реал-балансе 0 ₴.\nПополни через «Пополнить → Реал ₴».');
+        document.getElementById('deposit-btn')?.click();
+        return;
+      }
+      const user = await ensureAuth();
+      const code = generateRoomCode();
+      const name = (typeof currentAccount === 'function' && currentAccount()?.name) || 'Игрок';
+      await db.ref('durakRooms/' + code).set({
+        info: { status: 'waiting', maxPlayers: 6, hostUid: user.uid, stake: 10, pot: 0, createdAt: Date.now() },
+        players: { [user.uid]: { name, stack: chips, seat: 0, ready: false, hand: [], out: false } }
+      });
+      location.href = 'durak.html?room=' + code;
+    } catch (err) {
+      console.error(err);
+      alert('Ошибка создания стола: ' + err.message);
+    }
+  }
+
+  async function joinDurakRoom() {
+    if (typeof requireAuth === 'function' && !requireAuth('⚠️ Войди, чтобы играть в Дурака')) return;
+    const code = prompt('Введи код комнаты Дурака (6 символов):');
+    if (!code) return;
+    const cleanCode = code.trim().toUpperCase();
+    try {
+      const chips = await getPokerChips();
+      if (chips < 1) {
+        alert('На реал-балансе 0 ₴.');
+        document.getElementById('deposit-btn')?.click();
+        return;
+      }
+      const user = await ensureAuth();
+      const roomRef = db.ref('durakRooms/' + cleanCode);
+      const snap = await roomRef.once('value');
+      if (!snap.exists()) { alert('Комната не найдена. Проверь код.'); return; }
+      const data = snap.val();
+      const players = data.players || {};
+      if (Object.keys(players).length >= (data.info?.maxPlayers || 6)) {
+        alert('Стол уже заполнен'); return;
+      }
+      const name = (typeof currentAccount === 'function' && currentAccount()?.name) || 'Игрок';
+      await roomRef.child('players/' + user.uid).set({
+        name, stack: chips, seat: Object.keys(players).length, ready: false, hand: [], out: false
+      });
+      location.href = 'durak.html?room=' + cleanCode;
+    } catch (err) {
+      console.error(err);
+      alert('Ошибка входа: ' + err.message);
+    }
+  }
+
+  document.getElementById('create-durak-btn')?.addEventListener('click', createDurakRoom);
+  document.getElementById('join-durak-btn')?.addEventListener('click', joinDurakRoom);
 </script>
 
 <script src="common.js?v=jp21"></script>

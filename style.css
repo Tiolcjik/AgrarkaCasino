@@ -6857,3 +6857,184 @@ body.loss-dim {
   .real-amounts { grid-template-columns: repeat(2, 1fr) !important; }
   .real-available-val { font-size: 16px; }
 }
+
+/* =========================================================
+   ONLINE GAMES — Покер / Дурак (изолирован от хостесс)
+   ========================================================= */
+.online-section {
+  margin: 28px auto 36px;
+  max-width: 960px;
+  padding: 28px 20px 32px;
+  border-radius: 24px;
+  background:
+    radial-gradient(ellipse 80% 60% at 10% 0%, rgba(90, 50, 180, 0.22), transparent 55%),
+    radial-gradient(ellipse 70% 50% at 90% 100%, rgba(0, 180, 140, 0.12), transparent 50%),
+    linear-gradient(165deg, rgba(18, 12, 36, 0.97), rgba(8, 6, 18, 0.99));
+  border: 1px solid rgba(212, 175, 55, 0.28);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+  position: relative;
+  z-index: 5;
+  clear: both;
+  isolation: isolate;
+}
+.online-head {
+  text-align: center;
+  margin-bottom: 22px;
+  position: relative;
+  z-index: 1;
+}
+.online-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  padding: 5px 12px;
+  border-radius: 20px;
+  background: rgba(0, 255, 136, 0.12);
+  border: 1px solid rgba(0, 255, 136, 0.35);
+  color: #7dffc0;
+  margin-bottom: 10px;
+}
+.online-title {
+  margin: 0 0 6px !important;
+  font-size: clamp(22px, 5vw, 30px) !important;
+}
+.online-section .section-sub {
+  margin: 0 auto;
+  max-width: 420px;
+}
+.online-grid {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 16px;
+  max-width: 860px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
+}
+.online-card {
+  position: relative;
+  border-radius: 20px;
+  padding: 22px 18px 18px;
+  background: linear-gradient(160deg, rgba(28, 18, 52, 0.95), rgba(12, 8, 24, 0.98));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+}
+.online-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(212, 175, 55, 0.4);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
+}
+.online-card-glow {
+  position: absolute;
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  filter: blur(50px);
+  opacity: 0.35;
+  pointer-events: none;
+  top: -40px;
+  right: -30px;
+}
+.online-card-poker .online-card-glow { background: #6a4cff; }
+.online-card-durak .online-card-glow { background: #00c878; }
+.online-card-top {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+.online-card-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  background: linear-gradient(145deg, rgba(40, 28, 70, 0.9), rgba(15, 10, 30, 0.95));
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  flex-shrink: 0;
+}
+.online-card-poker .online-card-icon { box-shadow: 0 0 20px rgba(106, 76, 255, 0.35); }
+.online-card-durak .online-card-icon { box-shadow: 0 0 20px rgba(0, 200, 120, 0.35); }
+.online-card h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--gold-bright, #ffe9a8);
+}
+.online-card-tag {
+  margin: 3px 0 0;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.45);
+}
+.online-card-desc {
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.65);
+  margin: 0 0 16px;
+  flex: 1;
+}
+.online-card-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.online-btn {
+  width: 100%;
+  min-height: 48px;
+  border-radius: 14px;
+  font-weight: 800;
+  font-size: 14px;
+  cursor: pointer;
+  border: none;
+  font-family: inherit;
+  transition: transform 0.15s ease;
+}
+.online-btn:active { transform: scale(0.98); }
+.online-btn-primary {
+  background: linear-gradient(135deg, #00e080, #00a058);
+  color: #021a0c;
+  box-shadow: 0 6px 20px rgba(0, 200, 100, 0.3);
+}
+.online-card-poker .online-btn-primary {
+  background: linear-gradient(135deg, #8b6cff, #5a3fd4);
+  color: #fff;
+  box-shadow: 0 6px 20px rgba(106, 76, 255, 0.35);
+}
+.online-btn-ghost {
+  background: rgba(255, 255, 255, 0.04);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+}
+.online-btn-ghost:hover {
+  border-color: rgba(212, 175, 55, 0.5) !important;
+  background: rgba(212, 175, 55, 0.08);
+}
+.online-card-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.35);
+  padding-top: 4px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+@media (max-width: 640px) {
+  .online-section {
+    margin: 16px 10px 24px;
+    padding: 20px 14px 22px;
+    border-radius: 18px;
+  }
+  .online-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px;
+  }
+  .online-card { padding: 18px 14px 14px; }
+  .online-btn { min-height: 48px; }
+}

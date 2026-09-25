@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Дурак VIP — Аграрка Элит</title>
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="durak.css">
+</head>
+<body class="durak-page">
+<div class="fx-layer"><div class="fx-orb o1"></div><div class="fx-orb o2"></div></div>
+
+<header class="topbar topbar-pro">
+  <a href="index.html" class="logo"><span class="crown">🌾</span> <span class="logo-text">Аграрка Элит</span></a>
+  <div class="topbar-right">
+    <div class="balance-pill balance-pill-pro" style="background:linear-gradient(135deg,#1a3a2a,#0d2818);border:1px solid rgba(80,200,120,.35)">
+      <span class="chip-icon">💵</span>
+      <div class="balance-info">
+        <span class="balance-label" style="color:#7dcea0">Реал · Дурак</span>
+        <span id="balance-amount">0,00 ₴</span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="page">
+  <a href="index.html" class="back-link">← На главную</a>
+
+  <div class="topinfo">
+    <div>
+      <span class="topinfo-label">КОМНАТА</span>
+      <div class="code" id="room-code">—</div>
+    </div>
+    <div class="st" id="status">Подключение...</div>
+    <div class="pot-pill" id="pot-pill">Банк: 0 ₴</div>
+  </div>
+
+  <div class="lobby" id="lobby">
+    <div class="lobby-title">Ставка за вход</div>
+    <div class="stake-row">
+      <button type="button" class="stake-chip" data-stake="1">1 ₴</button>
+      <button type="button" class="stake-chip" data-stake="5">5 ₴</button>
+      <button type="button" class="stake-chip active" data-stake="10">10 ₴</button>
+      <button type="button" class="stake-chip" data-stake="50">50 ₴</button>
+      <button type="button" class="stake-chip" data-stake="100">100 ₴</button>
+      <button type="button" class="stake-chip" data-stake="500">500 ₴</button>
+    </div>
+    <div class="stake-custom">
+      <input type="number" id="stake-custom" min="1" step="1" placeholder="Своя ставка, ₴" inputmode="numeric">
+      <button type="button" id="stake-custom-btn">Ок</button>
+    </div>
+    <p class="lobby-hint" id="lobby-hint">Выбери ставку → все жмут «Готов» → у каждого списывается ставка в банк.</p>
+    <div class="lobby-players" id="lobby-players"></div>
+  </div>
+
+  <div class="table-outer" id="table-wrap">
+    <div class="table-inner">
+      <div class="trump-zone">
+        <div class="trump-label">Козырь</div>
+        <div id="trump-card" class="card trump-card">—</div>
+        <div class="deck-info" id="deck-info">Колода: —</div>
+      </div>
+      <div class="table-cards" id="table-cards"><div class="table-empty">Стол пуст</div></div>
+      <div class="seats" id="seats"></div>
+    </div>
+  </div>
+
+  <div class="controls" id="controls">
+    <div class="my-label">Твоя рука</div>
+    <div class="my-hand" id="my-hand"></div>
+    <div class="btns">
+      <button class="btn-ready" id="btn-ready">Готов</button>
+      <button class="btn-act hidden" id="btn-take">Беру</button>
+      <button class="btn-act hidden" id="btn-pass">Бито</button>
+      <button class="btn-act hidden" id="btn-rematch">Ещё раз</button>
+    </div>
+    <p class="msg" id="msg"></p>
+    <p class="hint">Подкидной · списание после старта у всех</p>
+  </div>
+</div>
+
+<div id="elim-toast" class="elim-toast"></div>
+<div id="winner-ov" class="winner-ov">
+  <div class="win-confetti" id="win-confetti"></div>
+  <div class="t" id="w-title">Ты победил!</div>
+  <div class="s" id="w-sub"></div>
+  <div class="win-amt" id="w-amt"></div>
+</div>
+<audio id="win-audio" src="pizdaty.mp3" preload="auto"></audio>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyDV42bV1_me7JKSckA3vLvoOXmSak9YqqA",
+  authDomain: "agrarka-pokerr.firebaseapp.com",
+  databaseURL: "https://agrarka-pokerr-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "agrarka-pokerr",
+  storageBucket: "agrarka-pokerr.firebasestorage.app",
+  messagingSenderId: "622812033913",
+  appId: "1:622812033913:web:7a2122a45d712b81ae75a8"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.database();
+</script>
+<script src="common.js"></script>
+<script src="durak.js"></script>
+</body>
+</html>

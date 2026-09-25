@@ -2072,11 +2072,8 @@ function renderAuthButton() {
   }
   const user = currentAccount();
   if (user) {
+    // Ник + аватар только в profile-chip (БП). Здесь — только выход.
     box.innerHTML = `
-      <div class="auth-chip" title="Вы вошли">
-        <span class="auth-avatar">${(user.name || user.login).slice(0,1).toUpperCase()}</span>
-        <span class="auth-nick">${user.name || user.login}</span>
-      </div>
       <button type="button" class="auth-logout icon-tool-btn" id="auth-logout" title="Выйти">🚪</button>
     `;
     box.querySelector('#auth-logout').onclick = () => {
@@ -2085,6 +2082,10 @@ function renderAuthButton() {
       if (balanceEl) balanceEl.textContent = fmtMoney(balance, true);
       showToast('Вы вышли из аккаунта');
       renderAuthButton();
+      try {
+        const chip = document.getElementById('profile-chip');
+        if (chip) chip.remove();
+      } catch (e) {}
       try { SFX.click(); } catch(e) {}
     };
   } else {
@@ -4007,8 +4008,16 @@ function applyProfileChrome() {
     chip.className = 'profile-chip';
     logo.parentNode.insertBefore(chip, logo.nextSibling);
   }
-  chip.innerHTML = `<span class="pc-av" style="background-image:url('${bpAvatarUrl(av.img)}')"></span><span class="pc-nick" style="${nickCss}">${(currentAccount() && currentAccount().name) || getSessionUser() || ''}</span>`;
-  if (prof.title) chip.title = prof.title;
+  const nick = (currentAccount() && currentAccount().name) || getSessionUser() || '';
+  const title = prof.title ? String(prof.title) : '';
+  chip.innerHTML = `<span class="pc-av" style="background-image:url('${bpAvatarUrl(av.img)}')"></span><span class="pc-body"><span class="pc-nick" style="${nickCss}">${nick}</span>${title ? `<span class="pc-title">${title}</span>` : ''}</span>`;
+  chip.title = title || nick || 'Профиль';
+  chip.onclick = () => {
+    try {
+      if (typeof openCabinet === 'function') openCabinet();
+      else document.getElementById('cabinet-btn')?.click();
+    } catch (e) {}
+  };
 }
 
 // ----- Big win replay -----
