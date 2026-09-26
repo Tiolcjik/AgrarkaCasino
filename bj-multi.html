@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Блэкджек 1v1 — Аграрка Элит</title>
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="bj-multi.css">
+</head>
+<body class="bj-page">
+<div class="fx-layer"><div class="fx-orb o1"></div><div class="fx-orb o2"></div></div>
+
+<header class="topbar topbar-pro">
+  <a href="index.html" class="logo"><span class="crown">🌾</span> <span class="logo-text">Аграрка Элит</span></a>
+  <div class="topbar-right">
+    <div class="balance-pill balance-pill-pro" style="background:linear-gradient(135deg,#1a3a2a,#0d2818);border:1px solid rgba(80,200,120,.35)">
+      <span class="chip-icon">💵</span>
+      <div class="balance-info">
+        <span class="balance-label" style="color:#7dcea0">Реал · BJ</span>
+        <span id="balance-amount">0,00 ₴</span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="page">
+  <a href="index.html" class="back-link">← На главную</a>
+
+  <div class="topinfo">
+    <div>
+      <span class="ti-label">КОМНАТА</span>
+      <div class="code" id="room-code">—</div>
+    </div>
+    <div class="st" id="status">Подключение...</div>
+    <div class="min-pill" id="min-pill">Мин: 10 ₴</div>
+  </div>
+
+  <div class="lobby" id="lobby">
+    <div class="lobby-title">1 на 1 · мин. ставка в банк</div>
+    <div class="stake-row">
+      <button type="button" class="stake-chip" data-stake="1">1 ₴</button>
+      <button type="button" class="stake-chip" data-stake="5">5 ₴</button>
+      <button type="button" class="stake-chip active" data-stake="10">10 ₴</button>
+      <button type="button" class="stake-chip" data-stake="25">25 ₴</button>
+      <button type="button" class="stake-chip" data-stake="50">50 ₴</button>
+      <button type="button" class="stake-chip" data-stake="100">100 ₴</button>
+    </div>
+    <p class="lobby-hint" id="lobby-hint">Только 2 игрока. Ставки с баланса → в общий банк. У кого больше очков (≤21) — забирает банк.</p>
+    <div class="lobby-players" id="lobby-players"></div>
+  </div>
+
+  <div class="table-outer" id="table-wrap">
+    <div class="table-inner">
+      <div class="pot-zone" id="pot-zone">
+        <div class="zone-label">Банк</div>
+        <div class="pot-amount" id="pot-amount">—</div>
+      </div>
+      <div class="players-zone" id="players-zone"></div>
+    </div>
+  </div>
+
+  <div class="controls" id="controls">
+    <div class="bet-panel hidden" id="bet-panel">
+      <div class="bet-label">Твоя ставка в банк</div>
+      <div class="bet-chips" id="bet-chips"></div>
+      <div class="bet-custom-row">
+        <label class="bet-custom-label" for="bet-custom">Своя</label>
+        <input type="number" id="bet-custom" class="bet-custom-input" min="1" step="1" inputmode="numeric" placeholder="сумма" autocomplete="off">
+        <span class="bet-custom-uah">₴</span>
+      </div>
+      <button type="button" class="btn-main" id="btn-place-bet">В банк</button>
+    </div>
+    <div class="action-panel hidden" id="action-panel">
+      <button type="button" class="btn-act" id="btn-hit">Ещё</button>
+      <button type="button" class="btn-act" id="btn-stand">Хватит</button>
+      <button type="button" class="btn-act" id="btn-double">×2</button>
+    </div>
+    <div class="btns-row">
+      <button type="button" class="btn-main" id="btn-ready">Готов</button>
+      <button type="button" class="btn-main hidden" id="btn-rematch">Ещё раз</button>
+    </div>
+    <p class="msg" id="msg"></p>
+    <p class="hint">1v1 · без дилера · банк только из ставок игроков</p>
+  </div>
+</div>
+
+<div id="result-ov" class="result-ov">
+  <div class="t" id="r-title">Раунд окончен</div>
+  <div class="s" id="r-sub"></div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyDV42bV1_me7JKSckA3vLvoOXmSak9YqqA",
+  authDomain: "agrarka-pokerr.firebaseapp.com",
+  databaseURL: "https://agrarka-pokerr-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "agrarka-pokerr",
+  storageBucket: "agrarka-pokerr.firebasestorage.app",
+  messagingSenderId: "622812033913",
+  appId: "1:622812033913:web:7a2122a45d712b81ae75a8"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.database();
+</script>
+<script src="common.js"></script>
+<script src="bj-multi.js"></script>
+</body>
+</html>

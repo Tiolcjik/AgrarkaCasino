@@ -7038,3 +7038,131 @@ body.loss-dim {
   .online-card { padding: 18px 14px 14px; }
   .online-btn { min-height: 48px; }
 }
+
+/* =========================================================
+   Profile chip — nick on top, title below, gold avatar ring
+   ========================================================= */
+.profile-chip {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  margin-left: 12px !important;
+  padding: 5px 14px 5px 5px !important;
+  border-radius: 28px !important;
+  background: linear-gradient(135deg, rgba(28, 16, 48, 0.92), rgba(12, 6, 24, 0.95)) !important;
+  border: 1px solid rgba(240, 208, 96, 0.35) !important;
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.35),
+    0 4px 16px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s !important;
+  max-width: min(220px, 42vw);
+  vertical-align: middle;
+}
+.profile-chip:hover {
+  border-color: rgba(255, 224, 138, 0.65) !important;
+  box-shadow:
+    0 0 0 1px rgba(240, 208, 96, 0.25),
+    0 0 22px rgba(240, 208, 96, 0.25),
+    0 6px 18px rgba(0, 0, 0, 0.4) !important;
+  transform: translateY(-1px);
+}
+
+/* Avatar — larger, gold ring, soft glow */
+.profile-chip .pc-av {
+  width: 36px !important;
+  height: 36px !important;
+  border-radius: 50% !important;
+  display: block !important;
+  flex-shrink: 0 !important;
+  background-size: cover !important;
+  background-position: center top !important;
+  background-repeat: no-repeat !important;
+  background-color: #1a1028 !important;
+  border: 2px solid #f0d060 !important;
+  box-shadow:
+    0 0 0 2px rgba(20, 10, 40, 0.9),
+    0 0 0 3px rgba(240, 208, 96, 0.45),
+    0 0 14px rgba(240, 208, 96, 0.55),
+    0 0 28px rgba(255, 46, 154, 0.2) !important;
+  position: relative;
+  animation: pc-av-glow 3s ease-in-out infinite;
+}
+@keyframes pc-av-glow {
+  0%, 100% {
+    box-shadow:
+      0 0 0 2px rgba(20, 10, 40, 0.9),
+      0 0 0 3px rgba(240, 208, 96, 0.4),
+      0 0 12px rgba(240, 208, 96, 0.45),
+      0 0 22px rgba(255, 46, 154, 0.15);
+  }
+  50% {
+    box-shadow:
+      0 0 0 2px rgba(20, 10, 40, 0.9),
+      0 0 0 3px rgba(255, 224, 138, 0.7),
+      0 0 18px rgba(240, 208, 96, 0.7),
+      0 0 32px rgba(255, 46, 154, 0.28);
+  }
+}
+
+/* Text stack: nick on top, title under */
+.profile-chip .pc-body {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  justify-content: center !important;
+  gap: 1px !important;
+  min-width: 0 !important;
+  line-height: 1.15 !important;
+}
+.profile-chip .pc-nick {
+  display: block !important;
+  font-size: 13px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.2px;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.2 !important;
+}
+.profile-chip .pc-title {
+  display: block !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: #f0d060 !important;
+  opacity: 0.95;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.2 !important;
+  text-shadow: 0 0 10px rgba(240, 208, 96, 0.35);
+}
+
+@media (max-width: 640px) {
+  .profile-chip {
+    margin-left: 6px !important;
+    padding: 4px 10px 4px 4px !important;
+    gap: 8px !important;
+    max-width: min(160px, 48vw);
+  }
+  .profile-chip .pc-av {
+    width: 32px !important;
+    height: 32px !important;
+  }
+  .profile-chip .pc-nick {
+    font-size: 12px !important;
+    max-width: 90px;
+  }
+  .profile-chip .pc-title {
+    font-size: 9px !important;
+    max-width: 90px;
+    letter-spacing: 0.4px;
+  }
+}

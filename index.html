@@ -195,6 +195,27 @@
         <span>от 1 ₴</span>
       </div>
     </article>
+
+    <article class="online-card online-card-bj">
+      <div class="online-card-glow"></div>
+      <div class="online-card-top">
+        <span class="online-card-icon">🂡</span>
+        <div>
+          <h3>Блэкджек 1v1</h3>
+          <p class="online-card-tag">Два игрока · банк из ставок · без дилера</p>
+        </div>
+      </div>
+      <p class="online-card-desc">Играй один на один. Ставки с баланса идут в общий банк — у кого больше очков (≤21), тот забирает банк. Без дилера.</p>
+      <div class="online-card-actions">
+        <button type="button" class="online-btn online-btn-primary" id="create-bj-btn">✨ Создать стол</button>
+        <button type="button" class="online-btn online-btn-ghost" id="join-bj-btn">🔗 Войти по коду</button>
+      </div>
+      <div class="online-card-meta">
+        <span>только 2 игрока</span>
+        <span>от 1 ₴</span>
+      </div>
+    </article>
+
   </div>
 </section>
 
@@ -497,7 +518,7 @@
       const playerCount = Object.keys(players).length;
 
       if (playerCount >= (data.info?.maxPlayers || 6)) {
-        alert('Стол уже заполнен');
+        alert('Стол только на 2 игрока — уже заполнен');
         return;
       }
 
@@ -563,7 +584,7 @@
       const data = snap.val();
       const players = data.players || {};
       if (Object.keys(players).length >= (data.info?.maxPlayers || 6)) {
-        alert('Стол уже заполнен'); return;
+        alert('Стол только на 2 игрока — уже заполнен'); return;
       }
       const name = (typeof currentAccount === 'function' && currentAccount()?.name) || 'Игрок';
       await roomRef.child('players/' + user.uid).set({
@@ -578,6 +599,65 @@
 
   document.getElementById('create-durak-btn')?.addEventListener('click', createDurakRoom);
   document.getElementById('join-durak-btn')?.addEventListener('click', joinDurakRoom);
+
+  async function createBjRoom() {
+    try {
+      if (typeof requireAuth === 'function' && !requireAuth('⚠️ Войди, чтобы играть в Блэкджек')) return;
+      const chips = await getPokerChips();
+      if (chips < 1) {
+        alert('На реал-балансе 0 ₴.\nПополни через «Пополнить → Реал ₴».');
+        document.getElementById('deposit-btn')?.click();
+        return;
+      }
+      const user = await ensureAuth();
+      const code = generateRoomCode();
+      const name = (typeof currentAccount === 'function' && currentAccount()?.name) || 'Игрок';
+      await db.ref('bjRooms/' + code).set({
+        info: { status: 'waiting', maxPlayers: 2, hostUid: user.uid, minBet: 10, createdAt: Date.now() },
+        players: { [user.uid]: { name, stack: chips, seat: 0, ready: false, hand: [], bet: 0, betPlaced: false, done: false } }
+      });
+      location.href = 'bj-multi.html?room=' + code;
+    } catch (err) {
+      console.error(err);
+      alert('Ошибка создания стола: ' + err.message);
+    }
+  }
+
+  async function joinBjRoom() {
+    if (typeof requireAuth === 'function' && !requireAuth('⚠️ Войди, чтобы играть в Блэкджек')) return;
+    const code = prompt('Введи код комнаты Блэкджека (6 символов):');
+    if (!code) return;
+    const cleanCode = code.trim().toUpperCase();
+    try {
+      const chips = await getPokerChips();
+      if (chips < 1) {
+        alert('На реал-балансе 0 ₴.');
+        document.getElementById('deposit-btn')?.click();
+        return;
+      }
+      const user = await ensureAuth();
+      const roomRef = db.ref('bjRooms/' + cleanCode);
+      const snap = await roomRef.once('value');
+      if (!snap.exists()) { alert('Комната не найдена. Проверь код.'); return; }
+      const data = snap.val();
+      const players = data.players || {};
+      if (Object.keys(players).length >= (data.info?.maxPlayers || 2)) {
+        alert('Стол только на 2 игрока — уже заполнен'); return;
+      }
+      const name = (typeof currentAccount === 'function' && currentAccount()?.name) || 'Игрок';
+      await roomRef.child('players/' + user.uid).set({
+        name, stack: chips, seat: Object.keys(players).length, ready: false, hand: [], bet: 0, betPlaced: false, done: false
+      });
+      location.href = 'bj-multi.html?room=' + cleanCode;
+    } catch (err) {
+      console.error(err);
+      alert('Ошибка входа: ' + err.message);
+    }
+  }
+
+  document.getElementById('create-bj-btn')?.addEventListener('click', createBjRoom);
+  document.getElementById('join-bj-btn')?.addEventListener('click', joinBjRoom);
+
 </script>
 
 <script src="common.js?v=jp21"></script>
